@@ -11,80 +11,82 @@ import 'recommenders.pig';
 /*
  * Add Item-Item Link Technique
 */
-%default INPUT_PATH_USERS '../data/books/users.csv'
-%default INPUT_PATH_BOOKS '../data/books/books.csv'
-%default INPUT_PATH_RATINGS '../data/books/ratings.csv'
-%default OUTPUT_PATH '../data/books/out'
-%default OUTPUT_PATH_ADD '$OUTPUT_PATH/add'
+%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
+%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
+%default INPUT_PATH_INVENTORY '../data/retail/inventory.json' -- added on for techniques
+
+%default OUTPUT_PATH '../data/retail/out/add_item_item'
+
 
 /******* Load Data **********/
 
---Get books signals
-book_input =  LOAD '$INPUT_PATH_BOOKS'
-                  USING org.apache.pig.piggybank.storage.CSVExcelStorage(';',  'YES_MULTILINE', 'NOCHANGE', 'SKIP_INPUT_HEADER') AS (
-                     isbn:chararray,
-                     title:chararray, 
-                     author:chararray, 
-                     publication_year:int,      
-                     publisher:chararray
-                  );
-user_input =  LOAD '$INPUT_PATH_USERS'
-                  USING org.apache.pig.piggybank.storage.CSVExcelStorage(';', 'YES_MULTILINE', 'NOCHANGE', 'SKIP_INPUT_HEADER') AS (
-                      user_id:int, location:chararray, age:int
-                  );
+--Get purchase signals
+purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.storage.JsonLoader(
+                    'row_id: int, 
+                     movie_id: chararray, 
+                     movie_name: chararray, 
+                     user_id: chararray, 
+                     purchase_price: int');
 
-rating_input = LOAD '$INPUT_PATH_RATINGS'
-                  USING org.apache.pig.piggybank.storage.CSVExcelStorage(';', 'YES_MULTILINE', 'NOCHANGE', 'SKIP_INPUT_HEADER') AS (
-                      user_id:int, isbn:chararray, rating:float
-                  );
- 
+--Get wishlist signals
+wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.storage.JsonLoader(
+                     'row_id: int, 
+                      movie_id: chararray, 
+                      movie_name: chararray, 
+                      user_id: chararray');
+
 
 /******* Convert Data to Signals **********/
 
--- fitler to remove ratings of zero
-rating_filtered = FILTER rating_input BY rating != 0; 
--- since rating data only gives isbn, replaces it with book title
-rating_named = JOIN rating_filtered BY isbn, book_input BY isbn;
--- weight ranges from -0.5 to 0.5, original weighting ranges from 1 to 10 
-  -- rating from 1 to 5 results in a negative number as user dislikes item
-  -- rating from 6 to 10 results in a positve number as user likes item
-user_signals = FOREACH rating_named GENERATE
-                  user_id as user,
-                  book_input::title as item,
-                  ((rating - 5.0) * 0.1) as weight;
-                                  
+-- Start with choosing 1 as max weight for a signal.
+purchase_signals = FOREACH purchase_input GENERATE
+                        user_id    as user,
+                        movie_name as item,
+                        1.0        as weight; 
 
-/******* Create Item-Item Links *******/
 
-book_clone = FOREACH book_input GENERATE *;
-book_signals = JOIN book_input by author, book_clone by author;
--- only interested in different books, hence filter out books that are the same item
-filtered_books = FILTER book_signals BY (book_input::isbn != book_clone::isbn); 
-item_signals_raw = FOREACH filtered_books GENERATE
-                  book_input::title as item_A,
-                  book_clone::title as item_B,
-                  0.5               as weight; -- strong reccomendation for similar authors
+-- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
+-- purchasing an item.
+wishlist_signals = FOREACH wishlist_input GENERATE
+                        user_id    as user,
+                        movie_name as item,
+                        0.5        as weight; 
 
--- Remove potential erros where item_A and item_B is null
-item_signals = FILTER item_signals_raw BY item_A is not null and item_B is not null;
+user_signals = UNION purchase_signals, wishlist_signals;
 
+/****** Changes for adding item item signals ********/
+
+inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.storage.JsonLoader(
+                     'movie_title: chararray, 
+                      genres: bag{tuple(content:chararray)}');
+
+inventory_flattened = FOREACH inventory_input GENERATE
+                          FLATTEN(genres) as genre,
+                          movie_title as movie_name;
+
+inventory_clone = FOREACH inventory_flattened GENERATE *;
+-- match items with the same genre
+inventory_joined = JOIN inventory_clone BY genre, inventory_flattened BY genre;
+joined_filt = FILTER inventory_joined BY (inventory_clone::movie_name != inventory_flattened::movie_name); 
+
+item_signals = FOREACH joined_filt GENERATE
+                    inventory_clone::movie_name     as item_A,
+                    inventory_flattened::movie_name as item_B,
+                    0.5                             as weight;
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
--- NOTE uses a non standard macro instead of recsys__GetItemItemRecommendations
--- The item_signals_filt is an extra parameter
-item_item_recs_add = recsys__GetItemItemRecommendations_AddItemItem(user_signals, item_signals);
 
-ii_item_filt = FILTER item_item_recs_add BY (item_B is not null) AND (item_A is not null) AND (weight is not null) AND (raw_weight is not null) AND  (rank is not null);
-user_item_recs_add = recsys__GetUserItemRecommendations(user_signals, ii_item_filt);
+item_item_recs = recsys__GetItemItemRecommendations_AddItemItem(user_signals, item_signals);
 
+user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 
 /******* Store recommendations **********/
 
-rmf $OUTPUT_PATH_ADD/item_item_recs;
-rmf $OUTPUT_PATH_ADD/user_item_recs;
+--  If your output folder exists already, hadoop will refuse to write data to it.
+rmf $OUTPUT_PATH/item_item_recs;
+rmf $OUTPUT_PATH/user_item_recs;
 
-store item_item_recs_add into '$OUTPUT_PATH_ADD/item_item_recs' using PigStorage();
-store user_item_recs_add into '$OUTPUT_PATH_ADD/user_item_recs' using PigStorage();
-
+store item_item_recs into '$OUTPUT_PATH/item_item_recs' using PigStorage();
+store user_item_recs into '$OUTPUT_PATH/user_item_recs' using PigStorage();
