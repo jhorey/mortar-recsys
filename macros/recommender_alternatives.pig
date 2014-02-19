@@ -60,11 +60,19 @@ define recsys__GetItemItemRecommendations_AddItemItem(user_item_signals, item_it
                                     );
 
     -- Use the item-item graph to create item-item recommendations.
-    $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraph(
+    item_item_recs_raw =  recsys__BuildItemItemRecommendationsFromGraph(
                            ii_links,
                            $NUM_RECS_PER_ITEM, 
                            $NUM_RECS_PER_ITEM
                        );
+    -- item_item_recs_raw need to be filtered
+    $item_item_recs = FILTER item_item_recs_raw 
+                          BY  (item_B is not null) 
+                          AND (item_A is not null) 
+                          AND (weight is not null) 
+                          AND (raw_weight is not null) 
+                          AND (rank is not null);
+
 };
 
 /* 

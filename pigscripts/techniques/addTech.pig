@@ -72,11 +72,12 @@ joined_filt = FILTER inventory_joined BY (inventory_clone::movie_name != invento
 item_signals = FOREACH joined_filt GENERATE
                     inventory_clone::movie_name     as item_A,
                     inventory_flattened::movie_name as item_B,
-                    0.5                             as weight;
+                    0.2                             as weight;
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 
+-- Uses an alternative macro where item_signals are passed as an arguement.
 item_item_recs = recsys__GetItemItemRecommendations_AddItemItem(user_signals, item_signals);
 
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
