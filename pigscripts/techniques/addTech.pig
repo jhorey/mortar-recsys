@@ -6,8 +6,6 @@
  */
 import 'recommenders.pig';
 
-import 'recommender_alternatives.pig';
-import 'recsys_alternatives.pig';
 
 
 /*
@@ -47,7 +45,6 @@ rating_input = LOAD '$INPUT_PATH_RATINGS'
 rating_filtered = FILTER rating_input BY rating != 0; 
 -- since rating data only gives isbn, replaces it with book title
 rating_named = JOIN rating_filtered BY isbn, book_input BY isbn;
-
 -- weight ranges from -0.5 to 0.5, original weighting ranges from 1 to 10 
   -- rating from 1 to 5 results in a negative number as user dislikes item
   -- rating from 6 to 10 results in a positve number as user likes item
@@ -63,19 +60,20 @@ book_clone = FOREACH book_input GENERATE *;
 book_signals = JOIN book_input by author, book_clone by author;
 -- only interested in different books, hence filter out books that are the same item
 filtered_books = FILTER book_signals BY (book_input::isbn != book_clone::isbn); 
-item_signals = FOREACH filtered_books GENERATE
+item_signals_raw = FOREACH filtered_books GENERATE
                   book_input::title as item_A,
                   book_clone::title as item_B,
                   0.5               as weight; -- strong reccomendation for similar authors
 
 -- Remove potential erros where item_A and item_B is null
-item_signals_filt = FILTER item_signals BY item_A is not null and item_B is not null;
+item_signals = FILTER item_signals_raw BY item_A is not null and item_B is not null;
+
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 -- NOTE uses a non standard macro instead of recsys__GetItemItemRecommendations
 -- The item_signals_filt is an extra parameter
-item_item_recs_add = recsys__GetItemItemRecommendations_AddItemItem(user_signals, item_signals_filt);
+item_item_recs_add = recsys__GetItemItemRecommendations_AddItemItem(user_signals, item_signals);
 
 ii_item_filt = FILTER item_item_recs_add BY (item_B is not null) AND (item_A is not null) AND (weight is not null) AND (raw_weight is not null) AND  (rank is not null);
 user_item_recs_add = recsys__GetUserItemRecommendations(user_signals, ii_item_filt);
