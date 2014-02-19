@@ -15,8 +15,8 @@
  */
 
 import 'recsys.pig';
-
-
+import 'recsys_alternatives.pig';
+import 'recommender_alternatives.pig';
 /*
  * This macro will create item-to-item recommendations based on user-item signals. 
  * 

@@ -132,40 +132,6 @@ returns item_recs {
 };
 
 /*
- * Helper method for recsys__BuildItemItemRecommendationsFromGraph. 
- *
- * Construct distance and path graphs for use in the shortest path algorithm.
- * 
- * Input:
- *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float) }
- *      num_recs: int
- *
- * Output:
- *       graph: { (item_A:chararray, item_B:chararray, dist:float, raw_weight:float) }
- *       paths: { (item_A:chararray, item_B:chararray, dist:float, raw_weight:float) }
- */
-define recsys__InitShortestPaths(ii_links, num_recs) returns graph, paths {
-
-    distance_mat        =   foreach $ii_links generate
-                                item_A, item_B, 1.0f / weight as dist, raw_weight;
-
-    $graph              =   foreach (group distance_mat by item_A) {
-                                sorted = order $1 by dist asc;
-                                   top = limit sorted $num_recs;
-                                generate flatten(top)
-                                      as (item_A, item_B, dist, raw_weight);
-                            }
-
-    graph_copy          =   foreach $graph generate item_A, item_B, dist, null as raw_weight;
-    dest_verts_dups     =   foreach graph_copy generate item_B as id;
-    dest_verts          =   distinct dest_verts_dups;
-    self_loops          =   foreach dest_verts generate
-                                id as item_A, id as item_B, 0.0f as dist, null as raw_weight;
-    $paths              =   union graph_copy, self_loops;
-};
-
-
-/*
  * Helper method for recsys__BuildItemItemRecommendationsFromGraph_withSourceItems.
  *
  * Construct distance and path graphs for use in the shortest path algorithm.
@@ -202,54 +168,6 @@ returns graph, paths {
     self_loops          =   foreach dest_verts generate
                                 id as item_A, id as item_B, 0.0f as dist, null as raw_weight;
     $paths              =   union graph_copy, self_loops;
-};
-
-
-/*
- * This macro takes links between users and items, and the item-to-item recommendations,
- * and generates "user neighborhoods" consisting of all the items recommended for any item
- * the user has a link to. It then
- *     1) applies a filter so that users are not recommended items they have already seen
- *     2) if an item is recommended multiple times, takes the highest-scoring of those recs
- *     3) limits the recs to the top N
- *
- * Input:
- *      user_item_signals: { (user:chararray, item:chararray, weight:float) }
- *      item_item_recs: { (item_A:chararray, item_B:chararray, weight:float) }
- *      num_recs: int
- *      diversity_adjust: 'false' or 'true'     An option to try and generate more diverse recommendations.
- *                                              See params/README.md for more details.
- *
- * Output:
- *      user_item_recs: { (user:chararray, item:chararray, weight:flaot, reason_item:chararray,
- *                         user_reason_item_weight:float, item_reason_item_weight:float, rank:int) }
- *
- *      reason_item: The item the user interacted with that generated this recommendation
- *      user_reason_item_weight: The weight the user had with the reason_item
- *      item_reason_item_weight: The original weight the item recommended had with the reason_item
- *
- */
-define recsys__BuildUserItemRecommendations(user_item_signals, item_item_recs, num_recs, diversity_adjust) 
-returns ui_recs {
-
-    define recsys__RefineUserItemRecs
-        com.mortardata.recsys.RefineUserItemRecs('$num_recs', '$diversity_adjust');
-
-    user_recs_tmp   =   foreach (join $user_item_signals by item, $item_item_recs by item_A) generate
-                                            user as user,
-                                          item_B as item,
-                            (float)
-                            SQRT($user_item_signals::weight * $item_item_recs::weight) as weight,
-                                          item_A as reason,
-                      $user_item_signals::weight as user_link,
-                                      raw_weight as item_link;
-
-    ui_recs_full    =   foreach (cogroup $user_item_signals by user, user_recs_tmp by user) generate
-                            flatten(recsys__RefineUserItemRecs($user_item_signals, user_recs_tmp))
-                            as (user, item, weight,
-                                reason_item, user_reason_item_weight, item_reason_item_weight,
-                                diversity_adj_weight, rank);
-    $ui_recs        =   foreach ui_recs_full generate $0..$5, $7;
 };
 
 
