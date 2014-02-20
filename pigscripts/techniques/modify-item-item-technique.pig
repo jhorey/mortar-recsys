@@ -34,6 +34,7 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
 
 
     /******** Custom Code stops here *********/
+
     -- remove negative numbers just incase
     ii_links_adjusted_filt = FOREACH ii_links_adjusted GENERATE item_A, item_B,
                                       (weight <= 0 ? 0: weight) as weight; 
@@ -61,7 +62,7 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
 %default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
 %default INPUT_PATH_INVENTORY '../data/retail/inventory.json'
-%default OUTPUT_PATH '../data/retail/out/modify'
+%default OUTPUT_PATH '../data/retail/out/modify_item_item'
 
 
 /******* Load Data **********/
@@ -109,10 +110,16 @@ inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.st
 
 
 metadata = FOREACH inventory_input GENERATE
-              FlATTEN(genres) as metadata_field,
+              FLATTEN(genres) as metadata_field,
               movie_title as item;
 -- requires the macro to be written seperately
+  --NOTE this macro is defined within this file for clarity
 item_item_recs = recsys__GetItemItemRecommendations_ModifyCustom(user_signals, metadata);
+/******* No more changes ********/
+
+
+
+
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 /******* Store recommendations **********/

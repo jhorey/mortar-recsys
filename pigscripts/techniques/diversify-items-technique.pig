@@ -1,15 +1,21 @@
 /**
- *  This script is an example recommender (using made up data) showing how you might extract 
- *  multiple user-item signals from your data.  Here, we extract one signal based on
- *  user purchase information and another based on a user adding a movie to their wishlist.  We
- *  then combine those signals before running the Mortar recommendation system to get item-item
- *  and user-item recommendations.
+ *  This script is an example recommender (using data from http://www.informatik.uni-freiburg.de/~cziegler/BX/)
+ *  that demonstrates the add item-item links technique.  The item-item links are generated based on existing
+ *  common traits in the set of items. In this case, item-item links are generated based on the author of the
+ *  book, where a link is generated when two books have the same author.  
  */
 import 'recommenders.pig';
 
+
+
+/*
+ * Diversify Items Technique
+*/
 %default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out/diversifyUI'
+%default INPUT_PATH_INVENTORY '../data/retail/inventory.json' -- added on for techniques
+
+%default OUTPUT_PATH '../data/retail/out/diversify'
 
 
 /******* Load Data **********/
@@ -30,7 +36,6 @@ wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.sto
                       user_id: chararray');
 
 
-
 /******* Convert Data to Signals **********/
 
 -- Start with choosing 1 as max weight for a signal.
@@ -49,10 +54,19 @@ wishlist_signals = FOREACH wishlist_input GENERATE
 
 user_signals = UNION purchase_signals, wishlist_signals;
 
+/****** Changes for diversifying items ********/
 
-/******* Use Mortar recommendation engine to convert signals to recommendations **********/
+inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.storage.JsonLoader(
+                     'movie_title: chararray, 
+                      genres: bag{tuple(content:chararray)}');
+-- Generate metadata that is a vital arguement for buildig recommendations
+metadata = FOREACH inventory_input GENERATE
+                          FLATTEN(genres) as metadata_field,
+                          movie_title as item;
 
-item_item_recs = recsys__GetItemItemRecommendations(user_signals);
+
+item_item_recs = recsys__GetItemItemRecommendations_DiversifyItemItem(user_signals, metadata);
+/******  Utilization of standard recsys code *******/
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 
