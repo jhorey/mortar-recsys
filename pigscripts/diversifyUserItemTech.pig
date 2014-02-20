@@ -7,9 +7,9 @@
  */
 import 'recommenders.pig';
 
-%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
-%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out/diversifyUI'
+%default INPUT_PATH_PURCHASES 's3://cngan-dev/retail/purchases.json'
+%default INPUT_PATH_WISHLIST 's3://cngan-dev/retail/wishlists.json'
+%default OUTPUT_PATH 's3://cngan-dev/data/retail/out/diversifyUI'
 
 
 /******* Load Data **********/
@@ -49,11 +49,18 @@ wishlist_signals = FOREACH wishlist_input GENERATE
 
 user_signals = UNION purchase_signals, wishlist_signals;
 
+user_signals_filt = FILTER user_signals BY (user is not null) AND (item is not null);
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 
 item_item_recs = recsys__GetItemItemRecommendations(user_signals);
-user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
+item_item_recs_filt = FILTER item_item_recs BY  (item_B is not null) 
+                                                AND (item_A is not null) 
+                                                AND (weight is not null) 
+                                                AND (raw_weight is not null) 
+                                                AND (rank is not null);
+
+user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs_filt);
 
 
 /******* Store recommendations **********/

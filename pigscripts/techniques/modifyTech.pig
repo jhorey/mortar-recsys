@@ -18,7 +18,7 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
                                      );
     -- NOTE this function is added in order to combine metadata with item-item links
         -- See macro for more detailed explination
-    ii_links_metadata           =   recsys__PutMetadataToItemItemLinks(
+    ii_links_metadata           =   recsys__AddMetadataToItemItemLinks(
                                         ii_links_raw, 
                                         $metadata
                                     ); 
@@ -29,14 +29,17 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
     -- In this case, if the metadata is the same, the weight is reduced.  Otherwise the weight is left alone.
     ii_links_adjusted           =  FOREACH ii_links_metadata GENERATE item_A, item_B,
                                         -- the amount of weight adjusted is dependant on the domain of data and what is expected
-                                        (metadata_B == metadata_A ? (weight - 0.5): weight) as weight; 
+                                        -- It is always best to adjust the weight by multiplying it by a factor rather than addition with a constant
+                                        (metadata_B == metadata_A ? (weight * 0.5): weight) as weight; 
 
 
     /******** Custom Code stops here *********/
-    -- TODO we need to recalculate the overall_item weights as it is changed after modifying it with meta data
+    -- remove negative numbers just incase
+    ii_links_adjusted_filt = FOREACH ii_links_adjusted GENERATE item_A, item_B,
+                                      (weight <= 0 ? 0: weight) as weight; 
     -- Adjust the weights of the graph to improve recommendations.
     ii_links                    =   recsys__AdjustItemItemGraphWeight(
-                                        ii_links_adjusted,
+                                        ii_links_adjusted_filt,
                                         item_weights,
                                         $BAYESIAN_PRIOR
                                     );
