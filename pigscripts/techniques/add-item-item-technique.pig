@@ -1,5 +1,5 @@
 /**
- *  This script is an example recommender (using data from http://www.informatik.uni-freiburg.de/~cziegler/BX/)
+ *  This script is an example recommender (using made up data)
  *  that demonstrates the add item-item links technique.  The item-item links are generated based on existing
  *  common traits in the set of items. In this case, item-item links are generated based on the author of the
  *  book, where a link is generated when two books have the same author.  
