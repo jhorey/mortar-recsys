@@ -167,7 +167,12 @@ returns graph, paths {
     dest_verts          =   distinct dest_verts_dups;
     self_loops          =   foreach dest_verts generate
                                 id as item_A, id as item_B, 0.0f as dist, null as raw_weight;
-    $paths              =   union graph_copy, self_loops;
+    raw_paths           =   union graph_copy, self_loops;
+    $paths              =   foreach (join raw_paths by item_B, $source_items by item) generate
+                                raw_paths::item_A as item_A, 
+                                raw_paths::dist as dist,
+                                raw_paths::raw_weight as raw_weight,
+                                source_items::item as item_B; 
 };
 
 
