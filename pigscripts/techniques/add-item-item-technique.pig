@@ -1,8 +1,8 @@
 /**
- *  This script is an example recommender (using made up data)
- *  that demonstrates the add item-item links technique.  The item-item links are generated based on existing
- *  common traits in the set of items. In this case, item-item links are generated based on the author of the
- *  book, where a link is generated when two books have the same author.  
+ *  This script is an example recommender (using made up data), which extends the retail example to demonstrate
+ *  the add item-item links technique.  The item-item links are generated based on common traits in items.
+ *  This script adds item-item links between movies with the same genre.  These links are then given
+ *  a positive weight to create more links between similar items.  
  */
 import 'recommenders.pig';
 
@@ -21,7 +21,7 @@ import 'recommenders.pig';
 /******* Load Data **********/
 
 --Get purchase signals
-purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.storage.JsonLoader(
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
                     'row_id: int, 
                      movie_id: chararray, 
                      movie_name: chararray, 
@@ -29,7 +29,7 @@ purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.sto
                      purchase_price: int');
 
 --Get wishlist signals
-wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.storage.JsonLoader(
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
                      'row_id: int, 
                       movie_id: chararray, 
                       movie_name: chararray, 
@@ -39,7 +39,7 @@ wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.sto
 /******* Convert Data to Signals **********/
 
 -- Start with choosing 1 as max weight for a signal.
-purchase_signals = FOREACH purchase_input GENERATE
+purchase_signals = foreach purchase_input generate
                         user_id    as user,
                         movie_name as item,
                         1.0        as weight; 
@@ -47,29 +47,29 @@ purchase_signals = FOREACH purchase_input GENERATE
 
 -- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
 -- purchasing an item.
-wishlist_signals = FOREACH wishlist_input GENERATE
+wishlist_signals = foreach wishlist_input generate
                         user_id    as user,
                         movie_name as item,
                         0.5        as weight; 
 
-user_signals = UNION purchase_signals, wishlist_signals;
+user_signals = union purchase_signals, wishlist_signals;
 
 /****** Changes for adding item item signals ********/
 
-inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.storage.JsonLoader(
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
                      'movie_title: chararray, 
                       genres: bag{tuple(content:chararray)}');
 
-inventory_flattened = FOREACH inventory_input GENERATE
+inventory_flattened = foreach inventory_input generate
                           FLATTEN(genres) as genre,
                           movie_title as movie_name;
 
-inventory_clone = FOREACH inventory_flattened GENERATE *;
+inventory_clone = foreach inventory_flattened generate *;
 -- match items with the same genre
-inventory_joined = JOIN inventory_clone BY genre, inventory_flattened BY genre;
-joined_filt = FILTER inventory_joined BY (inventory_clone::movie_name != inventory_flattened::movie_name); 
+inventory_joined = join inventory_clone by genre, inventory_flattened by genre;
+joined_filt = filter inventory_joined by (inventory_clone::movie_name != inventory_flattened::movie_name); 
 
-item_signals = FOREACH joined_filt GENERATE
+item_signals = foreach joined_filt generate
                     inventory_clone::movie_name     as item_A,
                     inventory_flattened::movie_name as item_B,
                     0.2                             as weight;

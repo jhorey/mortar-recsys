@@ -15,7 +15,7 @@ import 'recommenders.pig';
 /******* Load Data **********/
 
 --Get purchase signals
-purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.storage.JsonLoader(
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
                     'row_id: int, 
                      movie_id: chararray, 
                      movie_name: chararray, 
@@ -23,7 +23,7 @@ purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.sto
                      purchase_price: int');
 
 --Get wishlist signals
-wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.storage.JsonLoader(
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
                      'row_id: int, 
                       movie_id: chararray, 
                       movie_name: chararray, 
@@ -34,7 +34,7 @@ wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.sto
 /******* Convert Data to Signals **********/
 
 -- Start with choosing 1 as max weight for a signal.
-purchase_signals = FOREACH purchase_input GENERATE
+purchase_signals = foreach purchase_input generate
                         user_id    as user,
                         movie_name as item,
                         1.0        as weight; 
@@ -42,12 +42,12 @@ purchase_signals = FOREACH purchase_input GENERATE
 
 -- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
 -- purchasing an item.
-wishlist_signals = FOREACH wishlist_input GENERATE
+wishlist_signals = foreach wishlist_input generate
                         user_id    as user,
                         movie_name as item,
                         0.5        as weight; 
 
-user_signals = UNION purchase_signals, wishlist_signals;
+user_signals = union purchase_signals, wishlist_signals;
 
 
 

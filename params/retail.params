@@ -1,6 +1,6 @@
 # For detailed explanations of the parameters see params/README
 
-default_parallel=20
+default_parallel=18
 
 NUM_RECS_PER_ITEM=5
 NUM_RECS_PER_USER=5

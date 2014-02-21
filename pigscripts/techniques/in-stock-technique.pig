@@ -14,7 +14,7 @@ import 'recommenders.pig';
 /******* Load Data **********/
 
 --Get purchase signals
-purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.storage.JsonLoader(
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
                     'row_id: int, 
                      movie_id: chararray, 
                      movie_name: chararray, 
@@ -22,7 +22,7 @@ purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.sto
                      purchase_price: int');
 
 --Get wishlist signals
-wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.storage.JsonLoader(
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
                      'row_id: int, 
                       movie_id: chararray, 
                       movie_name: chararray, 
@@ -33,7 +33,7 @@ wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.sto
 /******* Convert Data to Signals **********/
 
 -- Start with choosing 1 as max weight for a signal.
-purchase_signals = FOREACH purchase_input GENERATE
+purchase_signals = foreach purchase_input generate
                         user_id    as user,
                         movie_name as item,
                         1.0        as weight; 
@@ -41,25 +41,27 @@ purchase_signals = FOREACH purchase_input GENERATE
 
 -- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
 -- purchasing an item.
-wishlist_signals = FOREACH wishlist_input GENERATE
+wishlist_signals = foreach wishlist_input generate
                         user_id    as user,
                         movie_name as item,
                         0.5        as weight; 
 
-user_signals = UNION purchase_signals, wishlist_signals;
+user_signals = union purchase_signals, wishlist_signals;
 
 /******** Changes for Consideration of Items in Stock  ******/
-inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.storage.JsonLoader(
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
                      'movie_title: chararray, 
                       stock: int,
                       genres: bag{tuple(content:chararray)}');
+
 -- recsys__GetItemItemRecommendations_WithSourceItems utilizes source_items to have schema as such
 -- where the item is the only field
-source_items = FOREACH (FILTER inventory_input BY stock > 0) GENERATE
+source_items = foreach (filter inventory_input by stock > 0) generate
                       movie_title as item;
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
+
 -- Use of non standard Mortar Recommendation engine macro
 item_item_recs = recsys__GetItemItemRecommendations_WithSourceItems(user_signals, source_items);
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);

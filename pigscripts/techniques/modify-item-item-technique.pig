@@ -1,9 +1,90 @@
 /**
  *  This script is an example recommender (using made up data) showing how you might modify item-item links
- *  by defining similar relations between datat, the metadatat, and customizing the change in weighting. 
+ *  by defining similar relations between items in a dataset and customizing the change in weighting. 
+ *  This example creates metadata by using the genre field as the metadata_field.  The items with
+ *  the same genre have it's weight cut in half in order to boost the signals of movies that do not have the same genre.
  *  This technique requires a customization of the standard GetItemItemRecommendations macro
  */
 import 'recommenders.pig';
+
+
+
+
+
+
+%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
+%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
+%default INPUT_PATH_INVENTORY '../data/retail/inventory.json'
+%default OUTPUT_PATH '../data/retail/out/modify_item_item'
+
+
+/******* Load Data **********/
+
+--Get purchase signals
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
+                    'row_id: int, 
+                     movie_id: chararray, 
+                     movie_name: chararray, 
+                     user_id: chararray, 
+                     purchase_price: int');
+
+--Get wishlist signals
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
+                     'row_id: int, 
+                      movie_id: chararray, 
+                      movie_name: chararray, 
+                      user_id: chararray');
+
+
+
+/******* Convert Data to Signals **********/
+
+-- Start with choosing 1 as max weight for a signal.
+purchase_signals = foreach purchase_input generate
+                        user_id    as user,
+                        movie_name as item,
+                        1.0        as weight; 
+
+
+-- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
+-- purchasing an item.
+wishlist_signals = foreach wishlist_input generate
+                        user_id    as user,
+                        movie_name as item,
+                        0.5        as weight; 
+
+user_signals = union purchase_signals, wishlist_signals;
+
+
+/******** Changes for Modifying item-item links ******/
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
+                     'movie_title: chararray, 
+                      genres: bag{tuple(content:chararray)}');
+
+
+metadata = foreach inventory_input generate
+              FLATTEN(genres) as metadata_field,
+              movie_title as item;
+-- requires the macro to be written seperately
+  --NOTE this macro is defined within this file for clarity
+item_item_recs = recsys__GetItemItemRecommendations_ModifyCustom(user_signals, metadata);
+/******* No more changes ********/
+
+
+
+
+user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
+
+/******* Store recommendations **********/
+
+--  If your output folder exists already, hadoop will refuse to write data to it.
+
+rmf $OUTPUT_PATH/item_item_recs;
+rmf $OUTPUT_PATH/user_item_recs;
+
+store item_item_recs into '$OUTPUT_PATH/item_item_recs' using PigStorage();
+store user_item_recs into '$OUTPUT_PATH/user_item_recs' using PigStorage();
+
 
 
 /******** Custom GetItemItemRecommnedations *********/
@@ -27,7 +108,7 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
     
     --The code here should adjust the weights based on an item-item link and the equality of metadata.
     -- In this case, if the metadata is the same, the weight is reduced.  Otherwise the weight is left alone.
-    ii_links_adjusted           =  FOREACH ii_links_metadata GENERATE item_A, item_B,
+    ii_links_adjusted           =  foreach ii_links_metadata generate item_A, item_B,
                                         -- the amount of weight adjusted is dependant on the domain of data and what is expected
                                         -- It is always best to adjust the weight by multiplying it by a factor rather than addition with a constant
                                         (metadata_B == metadata_A ? (weight * 0.5): weight) as weight; 
@@ -36,7 +117,7 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
     /******** Custom Code stops here *********/
 
     -- remove negative numbers just incase
-    ii_links_adjusted_filt = FOREACH ii_links_adjusted GENERATE item_A, item_B,
+    ii_links_adjusted_filt = foreach ii_links_adjusted generate item_A, item_B,
                                       (weight <= 0 ? 0: weight) as weight; 
     -- Adjust the weights of the graph to improve recommendations.
     ii_links                    =   recsys__AdjustItemItemGraphWeight(
@@ -52,85 +133,6 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
                            $NUM_RECS_PER_ITEM
                        );
 };
-
-
-
-
-
-
-
-%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
-%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default INPUT_PATH_INVENTORY '../data/retail/inventory.json'
-%default OUTPUT_PATH '../data/retail/out/modify_item_item'
-
-
-/******* Load Data **********/
-
---Get purchase signals
-purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.storage.JsonLoader(
-                    'row_id: int, 
-                     movie_id: chararray, 
-                     movie_name: chararray, 
-                     user_id: chararray, 
-                     purchase_price: int');
-
---Get wishlist signals
-wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.storage.JsonLoader(
-                     'row_id: int, 
-                      movie_id: chararray, 
-                      movie_name: chararray, 
-                      user_id: chararray');
-
-
-
-/******* Convert Data to Signals **********/
-
--- Start with choosing 1 as max weight for a signal.
-purchase_signals = FOREACH purchase_input GENERATE
-                        user_id    as user,
-                        movie_name as item,
-                        1.0        as weight; 
-
-
--- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
--- purchasing an item.
-wishlist_signals = FOREACH wishlist_input GENERATE
-                        user_id    as user,
-                        movie_name as item,
-                        0.5        as weight; 
-
-user_signals = UNION purchase_signals, wishlist_signals;
-
-
-/******** Changes for Modifying item-item links ******/
-inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.storage.JsonLoader(
-                     'movie_title: chararray, 
-                      genres: bag{tuple(content:chararray)}');
-
-
-metadata = FOREACH inventory_input GENERATE
-              FLATTEN(genres) as metadata_field,
-              movie_title as item;
--- requires the macro to be written seperately
-  --NOTE this macro is defined within this file for clarity
-item_item_recs = recsys__GetItemItemRecommendations_ModifyCustom(user_signals, metadata);
-/******* No more changes ********/
-
-
-
-
-user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
-
-/******* Store recommendations **********/
-
---  If your output folder exists already, hadoop will refuse to write data to it.
-
-rmf $OUTPUT_PATH/item_item_recs;
-rmf $OUTPUT_PATH/user_item_recs;
-
-store item_item_recs into '$OUTPUT_PATH/item_item_recs' using PigStorage();
-store user_item_recs into '$OUTPUT_PATH/user_item_recs' using PigStorage();
 
 
 

@@ -1,8 +1,8 @@
 /**
- *  This script is an example recommender (using data from http://www.informatik.uni-freiburg.de/~cziegler/BX/)
- *  that demonstrates the add item-item links technique.  The item-item links are generated based on existing
- *  common traits in the set of items. In this case, item-item links are generated based on the author of the
- *  book, where a link is generated when two books have the same author.  
+ *  This script is an example recommender (using made up data), which extends the retail example 
+ *  to demonstrate the diversify items technique. This script creates metadata from the inventory
+ *  dataset where titles are the items and the genre is the metadata_field.  The metadata entity
+ *  is then passed as an arguement to automatically create more diverse recommendations. 
  */
 import 'recommenders.pig';
 
@@ -21,7 +21,7 @@ import 'recommenders.pig';
 /******* Load Data **********/
 
 --Get purchase signals
-purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.storage.JsonLoader(
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
                     'row_id: int, 
                      movie_id: chararray, 
                      movie_name: chararray, 
@@ -29,7 +29,7 @@ purchase_input = LOAD '$INPUT_PATH_PURCHASES' USING org.apache.pig.piggybank.sto
                      purchase_price: int');
 
 --Get wishlist signals
-wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.storage.JsonLoader(
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
                      'row_id: int, 
                       movie_id: chararray, 
                       movie_name: chararray, 
@@ -39,7 +39,7 @@ wishlist_input =  LOAD '$INPUT_PATH_WISHLIST' USING org.apache.pig.piggybank.sto
 /******* Convert Data to Signals **********/
 
 -- Start with choosing 1 as max weight for a signal.
-purchase_signals = FOREACH purchase_input GENERATE
+purchase_signals = foreach purchase_input generate
                         user_id    as user,
                         movie_name as item,
                         1.0        as weight; 
@@ -47,25 +47,27 @@ purchase_signals = FOREACH purchase_input GENERATE
 
 -- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
 -- purchasing an item.
-wishlist_signals = FOREACH wishlist_input GENERATE
+wishlist_signals = foreach wishlist_input generate
                         user_id    as user,
                         movie_name as item,
                         0.5        as weight; 
 
-user_signals = UNION purchase_signals, wishlist_signals;
+user_signals = union purchase_signals, wishlist_signals;
 
 /****** Changes for diversifying items ********/
 
-inventory_input = LOAD '$INPUT_PATH_INVENTORY' USING org.apache.pig.piggybank.storage.JsonLoader(
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
                      'movie_title: chararray, 
                       genres: bag{tuple(content:chararray)}');
+
 -- Generate metadata that is a vital arguement for buildig recommendations
-metadata = FOREACH inventory_input GENERATE
+metadata = foreach inventory_input generate
                           FLATTEN(genres) as metadata_field,
                           movie_title as item;
 
 
 item_item_recs = recsys__GetItemItemRecommendations_DiversifyItemItem(user_signals, metadata);
+
 /******  Utilization of standard recsys code *******/
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
