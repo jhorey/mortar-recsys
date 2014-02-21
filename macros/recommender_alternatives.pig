@@ -127,11 +127,11 @@ define recsys__GetItemItemRecommendations_DiversifyItemItem(user_item_signals, m
  * 
  * Input:
  *      user_item_signals: { (user:chararray, item:chararray, weight:float) }
- *      source_items: { (item:chararray) }
+ *      available_items: { (item:chararray) }
  * Output:
  *      item_item_recs: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, rank:int) }
  */
-define recsys__GetItemItemRecommendations_WithSourceItems(user_item_signals, source_items) returns item_item_recs {
+define recsys__GetItemItemRecommendations_WithAvailableItems(user_item_signals, available_items) returns item_item_recs {
 
     -- Convert user_item_signals to an item_item_graph
     ii_links_raw, item_weights   =   recsys__BuildItemItemGraph(
@@ -151,9 +151,9 @@ define recsys__GetItemItemRecommendations_WithSourceItems(user_item_signals, sou
 
     -- Use the item-item graph to create item-item recommendations.
       -- calls different macro from standard recsys code
-    $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraph_withSourceItems(
+    $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraph_withAvailableItems(
                            ii_links,
-                           $source_items, -- Added on to represent items in stock or not
+                           $available_items, -- Added on to represent items in stock or not
                            $NUM_RECS_PER_ITEM, 
                            $NUM_RECS_PER_ITEM
                        );

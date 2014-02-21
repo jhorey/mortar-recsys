@@ -54,16 +54,16 @@ inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.st
                       stock: int,
                       genres: bag{tuple(content:chararray)}');
 
--- recsys__GetItemItemRecommendations_WithSourceItems utilizes source_items to have schema as such
+-- recsys__GetItemItemRecommendations_WithAvailableItems utilizes source_items to have schema as such
 -- where the item is the only field
-source_items = foreach (filter inventory_input by stock > 0) generate
+available_items = foreach (filter inventory_input by stock > 0) generate
                       movie_title as item;
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 
 -- Use of non standard Mortar Recommendation engine macro
-item_item_recs = recsys__GetItemItemRecommendations_WithSourceItems(user_signals, source_items);
+item_item_recs = recsys__GetItemItemRecommendations_WithAvailableItems(user_signals, available_items);
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 
