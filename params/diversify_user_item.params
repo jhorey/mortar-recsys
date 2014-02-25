@@ -10,4 +10,5 @@ MIN_LINK_WEIGHT=1.0
 BAYESIAN_PRIOR=4.0
 
 MAX_LINKS_PER_USER=100 
-ADD_DIVERSITY_FACTOR=false
+# This changes when you want user-item diversity in recommendations
+ADD_DIVERSITY_FACTOR=true

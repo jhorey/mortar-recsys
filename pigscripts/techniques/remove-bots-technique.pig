@@ -1,15 +1,15 @@
 /**
- *  This script is an example recommender (using made up data) showing how you might extract 
- *  multiple user-item signals from your data.  Here, we extract one signal based on
- *  user purchase information and another based on a user adding a movie to their wishlist.  We
- *  then combine those signals before running the Mortar recommendation system to get item-item
- *  and user-item recommendations.
+ *  This script is an example recommender (from made up data) 
+ *  that demonstrates the remove bots technique.  Bots are users that have an abnormally high amount of
+ *  generated signals such that it ultimately disrupts user-item signals in your set of data.  
+ *  Make sure that this script is ran using the 'techniques.param' file for the parameter file
+ *  as a THREHOLD parameter is set in that instance.
  */
 import 'recommenders.pig';
 
 %default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out'
+%default OUTPUT_PATH '../data/retail/out/remove_bots'
 
 
 /******* Load Data **********/
@@ -28,7 +28,6 @@ wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.sto
                       movie_id: chararray, 
                       movie_name: chararray, 
                       user_id: chararray');
-
 
 
 /******* Convert Data to Signals **********/
@@ -51,17 +50,25 @@ user_signals = union purchase_signals, wishlist_signals;
 
 
 
-/******* Use Mortar recommendation engine to convert signals to recommendations **********/
+/********* Remove user-item signals that are considered bots **********/
 
-item_item_recs = recsys__GetItemItemRecommendations(user_signals);
-user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
+-- Threshold is set in param file
+user_signals_removed_bots = recsys__RemoveBots(user_signals, $THRESHOLD);
+
+
+
+/******* Use Mortar recommendation engine to convert signals to recommendations **********/
+item_item_recs_remove= recsys__GetItemItemRecommendations(user_signals_removed_bots); -- Use Filtered Data 
+user_item_recs_remove = recsys__GetUserItemRecommendations(user_signals, item_item_recs_remove);
+
 
 
 /******* Store recommendations **********/
 
---  If your output folder exists already, hadoop will refuse to write data to it.
+--dump user_item_recs_II_filt;
 rmf $OUTPUT_PATH/item_item_recs;
 rmf $OUTPUT_PATH/user_item_recs;
 
-store item_item_recs into '$OUTPUT_PATH/item_item_recs' using PigStorage();
-store user_item_recs into '$OUTPUT_PATH/user_item_recs' using PigStorage();
+store item_item_recs_remove into '$OUTPUT_PATH/item_item_recs' using PigStorage();
+store user_item_recs_remove into '$OUTPUT_PATH/user_item_recs' using PigStorage();
+

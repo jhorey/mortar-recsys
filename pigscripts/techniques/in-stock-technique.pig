@@ -1,15 +1,14 @@
 /**
- *  This script is an example recommender (using made up data) showing how you might extract 
- *  multiple user-item signals from your data.  Here, we extract one signal based on
- *  user purchase information and another based on a user adding a movie to their wishlist.  We
- *  then combine those signals before running the Mortar recommendation system to get item-item
- *  and user-item recommendations.
+ *  This script is an example recommender (using made up data) showing how you can create recommendations
+ *  from determining if an item is in stock or not.  This information must be determined by metadata
+ *  that previously exists.
  */
 import 'recommenders.pig';
 
 %default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out'
+%default INPUT_PATH_INVENTORY '../data/retail/inventory.json'
+%default OUTPUT_PATH '../data/retail/out/in_stock'
 
 
 /******* Load Data **********/
@@ -49,11 +48,22 @@ wishlist_signals = foreach wishlist_input generate
 
 user_signals = union purchase_signals, wishlist_signals;
 
+/******** Changes for Consideration of Items in Stock  ******/
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
+                     'movie_title: chararray, 
+                      stock: int,
+                      genres: bag{tuple(content:chararray)}');
+
+-- recsys__GetItemItemRecommendations_WithAvailableItems utilizes source_items to have schema as such
+-- where the item is the only field
+available_items = foreach (filter inventory_input by stock > 0) generate
+                      movie_title as item;
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 
-item_item_recs = recsys__GetItemItemRecommendations(user_signals);
+-- Use of non standard Mortar Recommendation engine macro
+item_item_recs = recsys__GetItemItemRecommendations_WithAvailableItems(user_signals, available_items);
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 

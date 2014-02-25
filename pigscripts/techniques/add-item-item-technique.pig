@@ -1,15 +1,21 @@
 /**
- *  This script is an example recommender (using made up data) showing how you might extract 
- *  multiple user-item signals from your data.  Here, we extract one signal based on
- *  user purchase information and another based on a user adding a movie to their wishlist.  We
- *  then combine those signals before running the Mortar recommendation system to get item-item
- *  and user-item recommendations.
+ *  This script is an example recommender (using made up data), which extends the retail example to demonstrate
+ *  the add item-item links technique.  The item-item links are generated based on common traits in items.
+ *  This script adds item-item links between movies with the same genre.  These links are then given
+ *  a positive weight to create more links between similar items.  
  */
 import 'recommenders.pig';
 
+
+
+/*
+ * Add Item-Item Link Technique
+*/
 %default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out'
+%default INPUT_PATH_INVENTORY '../data/retail/inventory.json' -- added on for techniques
+
+%default OUTPUT_PATH '../data/retail/out/add_item_item'
 
 
 /******* Load Data **********/
@@ -30,7 +36,6 @@ wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.sto
                       user_id: chararray');
 
 
-
 /******* Convert Data to Signals **********/
 
 -- Start with choosing 1 as max weight for a signal.
@@ -49,11 +54,32 @@ wishlist_signals = foreach wishlist_input generate
 
 user_signals = union purchase_signals, wishlist_signals;
 
+/****** Changes for adding item item signals ********/
+
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
+                     'movie_title: chararray, 
+                      genres: bag{tuple(content:chararray)}');
+
+inventory_flattened = foreach inventory_input generate
+                          FLATTEN(genres) as genre,
+                          movie_title as movie_name;
+
+inventory_clone = foreach inventory_flattened generate *;
+-- match items with the same genre
+inventory_joined = join inventory_clone by genre, inventory_flattened by genre;
+joined_filt = filter inventory_joined by (inventory_clone::movie_name != inventory_flattened::movie_name); 
+
+item_signals = foreach joined_filt generate
+                    inventory_clone::movie_name     as item_A,
+                    inventory_flattened::movie_name as item_B,
+                    0.2                             as weight;
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 
-item_item_recs = recsys__GetItemItemRecommendations(user_signals);
+-- Uses an alternative macro where item_signals are passed as an arguement.
+item_item_recs = recsys__GetItemItemRecommendations_AddItemItem(user_signals, item_signals);
+
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 

@@ -16,8 +16,7 @@
 
 package com.mortardata.recsys;
 
-import gnu.trove.iterator.TIntObjectIterator;
-import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TCustomHashMap;
 import gnu.trove.map.hash.TObjectFloatHashMap;
 import gnu.trove.set.hash.THashSet;
 
@@ -153,27 +152,28 @@ public class RefineUserItemRecs extends EvalFunc<DataBag> {
 
     private void applyDiversityAdjustment(List<Tuple> candValues)
             throws ExecException {
-        TIntObjectHashMap<ArrayList<Tuple>> reasons = new TIntObjectHashMap<ArrayList<Tuple>>();
+        HashMap<String, ArrayList<Tuple>> reasons = new HashMap<String, ArrayList<Tuple>>();
         
         // Group candidate recommendations by reason.
         for (Tuple t : candValues) {
-            int reason = (Integer) t.get(3);
-            ArrayList<Tuple> reasonList = reasons.get(reason);
-            if (reasonList == null) {
-                reasonList = new ArrayList<Tuple>();
-                reasonList.add(t);
-                reasons.put(reason, reasonList);
-            } else {
-                reasonList.add(t);
+            String reason = (String) t.get(3);
+            if(reason!= null){
+            
+                if (reasons.get(reason) == null) {
+                    ArrayList<Tuple> reasonList = new ArrayList<Tuple>();
+                    reasonList.add(t);
+                    reasons.put(reason, reasonList);
+                } else {
+                    ArrayList<Tuple> reasonList = reasons.get(reason);
+                    reasonList.add(t);
+                }
             }
         }
 
         // Calculate a diversity adjusted weight for every item.  
         // diversity_adj_weight = weight / (reason_rank + 1)
-        TIntObjectIterator<ArrayList<Tuple>> it = reasons.iterator();
-        while (it.hasNext()) {
-            it.advance();
-            ArrayList<Tuple> li = it.value();
+        for (String s : reasons.keySet()) {
+            ArrayList<Tuple> li = reasons.get(s);
             Collections.sort(li, getTupleComparator(2));
 
             for (int i = 0; i < li.size(); i++) {

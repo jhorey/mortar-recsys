@@ -1,15 +1,12 @@
 /**
- *  This script is an example recommender (using made up data) showing how you might extract 
- *  multiple user-item signals from your data.  Here, we extract one signal based on
- *  user purchase information and another based on a user adding a movie to their wishlist.  We
- *  then combine those signals before running the Mortar recommendation system to get item-item
- *  and user-item recommendations.
+ *  This script is an example recommender (using made up data) showing how you can create recommendations
+ *  by using a popularity boost to improve results
  */
 import 'recommenders.pig';
 
 %default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out'
+%default OUTPUT_PATH '../data/retail/out/popularity'
 
 
 /******* Load Data **********/
@@ -50,10 +47,9 @@ wishlist_signals = foreach wishlist_input generate
 user_signals = union purchase_signals, wishlist_signals;
 
 
-
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
-
-item_item_recs = recsys__GetItemItemRecommendations(user_signals);
+-- Use of non standard Mortar Recommendation engine macro
+item_item_recs = recsys__GetItemItemRecommendations_PopularityBoost(user_signals);
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 

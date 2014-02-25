@@ -7,4 +7,5 @@ tmp
 logs
 illustrate-output
 data/retail/out
+data/books/out
 udfs/java/target
