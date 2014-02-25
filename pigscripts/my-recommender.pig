@@ -27,8 +27,8 @@ user_signals = foreach raw_input generate
 /*
 -- Call the default Mortar recommender algorithm on your user-item data.
 -- The input_signals alias needs to have the following fields: (user, item, weight:float)
-item_item_recs = recsys__item_to_item_recs(user_signals);
-user_item_recs = recsys__user_to_item_recs(user_signals, item_item_recs);
+item_item_recs = recsys__GetItemItemRecommendations(user_signals);
+user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 
 --  If your output folder exists already, hadoop will refuse to write data to it. 
