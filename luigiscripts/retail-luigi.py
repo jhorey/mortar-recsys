@@ -34,7 +34,7 @@ def create_full_path(base_path, sub_path):
     return '%s/%s' % (base_path, sub_path)
 
 # REPLACE WITH YOUR PROJECT NAME
-
+MORTAR_PROJECT = 'your-project-name'
 
 class RetailPigscriptTask(mortartask.MortarProjectPigscriptTask):
     # s3 path to the folder where the input data is located

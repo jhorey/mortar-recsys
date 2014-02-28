@@ -25,7 +25,7 @@ import 'recsys_util.pig';
  *      user_item_signals: { (user:chararray, item:chararray, weight:float) }
  *
  * Output:
- *      item_item_recs: { (item_A:chararray, item_B:chararray, weight:flaot, raw_weight:float, rank:int) }
+ *      item_item_recs: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, rank:int) }
  */
 define recsys__GetItemItemRecommendations(user_item_signals) returns item_item_recs {
 
