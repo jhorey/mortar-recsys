@@ -1,8 +1,19 @@
 
 ----------------------------------------------------------------------------------------------------
--- Two debug macros for returning recs from item ids to string ids/names
--- and also sorting by user/item asc, rank asc
--- so you can inspect the output quickly with the unix "look" command
+--Two debug macros for returning recs from item ids to string ids/names
+--and also sorting by user/item asc, rank asc
+--so you can inspect the output quickly with the unix "look" command
+
+--Example usage:
+--
+--signals = load '$INPUT_PATH' using PigStorage('user_id', 'user_name', 'item_id', 'item_name');
+--
+--item_names = distinct(foreach signals generate item_id as id, item_name as name);
+--user_names = distinct(foreach signals generate user_id as id, user_name as name);
+--
+--item_item_recs_names = Recsys__ItemRecNamesFromIds(item_item_recs, item_names);
+--user_items_recs_names = Recsys__UserRecNamesFromIds(user_item_recs, user_names, item_names);
+
 
 /*
  * item_nhoods: { item_A: chararray, item_B: chararray, weight: float, raw_weight: float, rank: int }
