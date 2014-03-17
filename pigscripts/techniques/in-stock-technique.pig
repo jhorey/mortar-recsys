@@ -63,7 +63,7 @@ available_items = foreach (filter inventory_input by stock > 0) generate
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
 
 -- Use of non standard Mortar Recommendation engine macro
-item_item_recs = recsys__GetItemItemRecommendations_WithAvailableItems(user_signals, available_items);
+item_item_recs = recsys__GetItemItemRecommendations_WithAvailableItems(user_signals, available_items, available_items);
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 

@@ -85,23 +85,26 @@ returns item_recs {
 /*
  * This is an alternative of recsys__BuildItemItemRecommendationsFromGraph.  
  *
- * This takes an additional input of a set of available items to handle the case where not every
- * item is in stock or needs a recommendation; but the links to those items may still be valuable
- * in the shortest paths traversal.
+ * This takes an additional input of a set of available source items and available destination
+ * items, to handle the case where not every item is in stock or needs a recommendation; but the
+ * links to those items may still be valuable in the shortest paths traversal and when linking
+ * back to users.
  *
  * Input:
  *      Same inputs as recsys__BuildItemItemRecommendationsFromGraph.
- *      available_items: { (item:chararray) }
+ *      source_items: { (item:chararray) }
+ *      dest_items: { (item:chararray) }
  *
  * Output:
  *      Same output as recsys__BuildItemItemRecommendationsFromGraph.
  */
 define recsys__BuildItemItemRecommendationsFromGraph_withAvailableItems(
-                            ii_links, available_items, initial_nhood_size, num_recs)
+                            ii_links, source_items, dest_items, initial_nhood_size, num_recs)
 returns item_recs {
 
     graph, paths        =   recsys__InitShortestPaths_FromAvailableItems($ii_links,
-                                                                      $available_items,
+                                                                      $source_items,
+                                                                      $dest_items,
                                                                       $initial_nhood_size);
 
     two_step_terms      =   foreach (join graph by item_B, paths by item_A) generate
@@ -138,14 +141,15 @@ returns item_recs {
  * 
  * Input:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float) }
- *      available_items: { (item:chararray) }
+ *      source_items: { (item:chararray) }
+ *      dest_items: { (item:chararray) }
  *      num_recs: int
  *
  * Output:
  *       graph: { (item_A:chararray, item_B:chararray, dist:float, raw_weight:float) }
  *       paths: { (item_A:chararray, item_B:chararray, dist:float, raw_weight:float) }
  */
-define recsys__InitShortestPaths_FromAvailableItems(ii_links, available_items, num_recs)
+define recsys__InitShortestPaths_FromAvailableItems(ii_links, source_items, dest_items, num_recs)
 returns graph, paths {
 
     distance_mat        =   foreach $ii_links generate
@@ -158,7 +162,7 @@ returns graph, paths {
                                       as (item_A, item_B, dist, raw_weight);
                             }
 
-    $graph              =   foreach (join $available_items by item, graph_tmp by item_A) generate
+    $graph              =   foreach (join $source_items by item, graph_tmp by item_A) generate
                                 item_A as item_A, item_B as item_B,
                                 dist as dist, raw_weight as raw_weight;
 
@@ -168,11 +172,11 @@ returns graph, paths {
     self_loops          =   foreach dest_verts generate
                                 id as item_A, id as item_B, 0.0f as dist, null as raw_weight;
     raw_paths           =   union graph_copy, self_loops;
-    $paths              =   foreach (join raw_paths by item_B, $available_items by item) generate
+    $paths              =   foreach (join raw_paths by item_B, $dest_items by item) generate
                                 raw_paths::item_A as item_A, 
                                 raw_paths::dist as dist,
                                 raw_paths::raw_weight as raw_weight,
-                                available_items::item as item_B; 
+                                raw_paths::item_B as item_B;
 };
 
 
