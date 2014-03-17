@@ -15,7 +15,7 @@ STORE item_item_recs
  INTO '$OUTPUT_PATH/unused-ii-table-data'
 USING com.mortardata.pig.storage.DynamoDBStorage('$II_TABLE', '$AWS_ACCESS_KEY_ID', '$AWS_SECRET_ACCESS_KEY');
 
--- STORE the item_item_recs into dynamo
+-- STORE the user_item_recs into dynamo
 STORE user_item_recs
  INTO '$OUTPUT_PATH/unused-ui-table-data'
 USING com.mortardata.pig.storage.DynamoDBStorage('$UI_TABLE', '$AWS_ACCESS_KEY_ID', '$AWS_SECRET_ACCESS_KEY');
