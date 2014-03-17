@@ -124,6 +124,9 @@ define recsys__GetItemItemRecommendations_DiversifyItemItem(user_item_signals, m
  * item is in stock or needs a recommendation; but the links to those items may still be valuable
  * in the shortest paths traversal. It then builds the item-item recommendations from this traversal.
  *
+ * Source_items are those items that should have recommendations generated for them (e.g. every item
+ * that appears on your web site), and dest_items are those items that should be recommended (e.g.
+ * every item that can currently be purchased).
  * 
  * Input:
  *      user_item_signals: { (user:chararray, item:chararray, weight:float) }
