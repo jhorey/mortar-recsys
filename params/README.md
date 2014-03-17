@@ -6,7 +6,7 @@ There are a number of parameters that need to be set when running a Mortar recom
 
 These parameters are ones that generally depend on your specific job and your preferences.  
 
-* **default_parallel:** Use default\_parallel to improve performance.  This tells Hadoop how many reducers to use.  A good rule of thumb is to set this to be 2 * ([YOUR\_CLUSTER\_SIZE] - 1).
+* **default_parallel:** Use default\_parallel to improve performance.  This tells Hadoop how many reducers to use.  A good rule of thumb is to set this to be 3 * ([YOUR\_CLUSTER\_SIZE] - 1).
 * **NUM_RECS_PER_ITEM:** This is the maximum number of recommendations that will be generated for a single item.
 * **NUM_RECS_PER_USER:** This is the maximum number of recommendations that will be generated for a single user.
 * **LOGISTIC_PARAM:** Multiple links between a given user and item are allowed and will be aggregated using a logicstic scale which simulates "diminishing returns".  If this parameter is large, the diminishing returns take effect quickly; if it is small, they take effect slowly.  You can use scripts/logistic_scale_vis.py to help tune this parameter.
