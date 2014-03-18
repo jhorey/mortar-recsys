@@ -63,8 +63,10 @@ returns ii_links, item_weights {
     define recsys__FilterItemItemLinks
         com.mortardata.recsys.FilterItemItemLinks('$min_link_weight');
 
+    ui_signals      =   filter $ui_signals by user is not null and item is not null;
+
     -- Aggregate events by (user,item) and sum weights to get one weight for each user-item combination.
-    ui_agg          =   foreach (group $ui_signals by (user, item)) generate
+    ui_agg          =   foreach (group ui_signals by (user, item)) generate
                             flatten(group) as (user, item),
                             (float) SUM($1.weight) as weight;
 
