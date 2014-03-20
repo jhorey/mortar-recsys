@@ -102,9 +102,13 @@ define recsys__BuildItemItemRecommendationsFromGraph_withAvailableItems(
                             ii_links, source_items, dest_items, initial_nhood_size, num_recs)
 returns item_recs {
 
+    source_items        =   DISTINCT $source_items;
+    
+    dest_items          =   DISTINCT $dest_items;
+
     graph, paths        =   recsys__InitShortestPaths_FromAvailableItems($ii_links,
-                                                                      $source_items,
-                                                                      $dest_items,
+                                                                      source_items,
+                                                                      dest_items,
                                                                       $initial_nhood_size);
 
     two_step_terms      =   foreach (join graph by item_B, paths by item_A) generate
