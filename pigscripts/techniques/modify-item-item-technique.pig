@@ -18,6 +18,54 @@ import 'recommenders.pig';
 %default OUTPUT_PATH '../data/retail/out/modify_item_item'
 
 
+/******** Custom GetItemItemRecommnedations *********/
+define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metadata) returns item_item_recs {
+
+    -- Convert user_item_signals to an item_item_graph
+    ii_links_raw, item_weights   =   recsys__BuildItemItemGraph(
+                                       $user_item_signals,
+                                       $LOGISTIC_PARAM,
+                                       $MIN_LINK_WEIGHT,
+                                       $MAX_LINKS_PER_USER
+                                     );
+    -- NOTE this function is added in order to combine metadata with item-item links
+        -- See macro for more detailed explination
+    ii_links_metadata           =   recsys__AddMetadataToItemItemLinks(
+                                        ii_links_raw,
+                                        $metadata
+                                    );
+
+    /********* Custom Code starts here ********/
+
+    --The code here should adjust the weights based on an item-item link and the equality of metadata.
+    -- In this case, if the metadata is the same, the weight is reduced.  Otherwise the weight is left alone.
+    ii_links_adjusted           =  foreach ii_links_metadata generate item_A, item_B,
+                                        -- the amount of weight adjusted is dependant on the domain of data and what is expected
+                                        -- It is always best to adjust the weight by multiplying it by a factor rather than addition with a constant
+                                        (metadata_B == metadata_A ? (weight * 0.5): weight) as weight;
+
+
+    /******** Custom Code stops here *********/
+
+    -- remove negative numbers just incase
+    ii_links_adjusted_filt = foreach ii_links_adjusted generate item_A, item_B,
+                                      (weight <= 0 ? 0: weight) as weight;
+    -- Adjust the weights of the graph to improve recommendations.
+    ii_links                    =   recsys__AdjustItemItemGraphWeight(
+                                        ii_links_adjusted_filt,
+                                        item_weights,
+                                        $BAYESIAN_PRIOR
+                                    );
+
+    -- Use the item-item graph to create item-item recommendations.
+    $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraph(
+                           ii_links,
+                           $NUM_RECS_PER_ITEM,
+                           $NUM_RECS_PER_ITEM
+                       );
+};
+
+
 /******* Load Data **********/
 
 --Get purchase signals
@@ -84,55 +132,6 @@ rmf $OUTPUT_PATH/user_item_recs;
 
 store item_item_recs into '$OUTPUT_PATH/item_item_recs' using PigStorage();
 store user_item_recs into '$OUTPUT_PATH/user_item_recs' using PigStorage();
-
-
-
-/******** Custom GetItemItemRecommnedations *********/
-define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metadata) returns item_item_recs {
-
-    -- Convert user_item_signals to an item_item_graph
-    ii_links_raw, item_weights   =   recsys__BuildItemItemGraph(
-                                       $user_item_signals,
-                                       $LOGISTIC_PARAM,
-                                       $MIN_LINK_WEIGHT,
-                                       $MAX_LINKS_PER_USER
-                                     );
-    -- NOTE this function is added in order to combine metadata with item-item links
-        -- See macro for more detailed explination
-    ii_links_metadata           =   recsys__AddMetadataToItemItemLinks(
-                                        ii_links_raw, 
-                                        $metadata
-                                    ); 
- 
-    /********* Custom Code starts here ********/
-    
-    --The code here should adjust the weights based on an item-item link and the equality of metadata.
-    -- In this case, if the metadata is the same, the weight is reduced.  Otherwise the weight is left alone.
-    ii_links_adjusted           =  foreach ii_links_metadata generate item_A, item_B,
-                                        -- the amount of weight adjusted is dependant on the domain of data and what is expected
-                                        -- It is always best to adjust the weight by multiplying it by a factor rather than addition with a constant
-                                        (metadata_B == metadata_A ? (weight * 0.5): weight) as weight; 
-
-
-    /******** Custom Code stops here *********/
-
-    -- remove negative numbers just incase
-    ii_links_adjusted_filt = foreach ii_links_adjusted generate item_A, item_B,
-                                      (weight <= 0 ? 0: weight) as weight; 
-    -- Adjust the weights of the graph to improve recommendations.
-    ii_links                    =   recsys__AdjustItemItemGraphWeight(
-                                        ii_links_adjusted_filt,
-                                        item_weights,
-                                        $BAYESIAN_PRIOR
-                                    );
-
-    -- Use the item-item graph to create item-item recommendations.
-    $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraph(
-                           ii_links,
-                           $NUM_RECS_PER_ITEM, 
-                           $NUM_RECS_PER_ITEM
-                       );
-};
 
 
 
