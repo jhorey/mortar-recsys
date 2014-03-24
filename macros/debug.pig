@@ -1,11 +1,14 @@
-
 /*
- * This macro returns only the user signals that helped form a recommendation between two items.
+ * This macro returns only the user signals that caused a recommendation from item1 to item2.
+ * These signals explain why certain items are showing up in the recommendations (e.g. you may find
+ * that four users purchased both). This can help to inform signal weights.
  *
  * Input:
  *      item1: chararray
  *      item2: chararray
  *      user_signals: { (user:chararray, item:chararray, signal:chararray) }
+ *
+ *      signal: the type of interaction the user had with the item (e.g. PURCHASE)
  *
  * Output:
  *      ordered_links: { (user:chararray, item:chararray, signal:chararray)}

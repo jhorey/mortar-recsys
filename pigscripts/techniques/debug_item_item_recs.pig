@@ -37,7 +37,7 @@ wishlist_signals = foreach wishlist_input generate
 
 user_signals = union purchase_signals, wishlist_signals;
 
---Find the signals for that linked two items
+--Find the signals that linked two items
 final_output = recsys__SelectSignals('notting hill', 'wuthering heights', user_signals);
 
 --  If your output folder exists already, hadoop will refuse to write data to it.
