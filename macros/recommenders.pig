@@ -18,9 +18,53 @@ import 'recsys.pig';
 import 'recsys_alternatives.pig';
 import 'recommender_alternatives.pig';
 import 'recsys_util.pig';
+
+
 /*
- * This macro will create item-to-item recommendations based on user-item signals. 
- * 
+ * This macro will create item-to-item recommendations based on user-item signals with detailed
+ * output on the reason links were created.
+ *
+ * Input:
+ *      user_item_signals: { (user:chararray, item:chararray, weight:float, signal_type:chararray) }
+ *
+ * Output:
+ *      item_item_recs: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, rank:int,
+ *                          link_details:map, linking_item:chararray) }
+ *              linking_item is the item between item_A and item_B on the graph for indirect links
+ *              link_data contains information about the types of signals that formed the link
+ */
+define recsys__GetItemItemRecommendationsDetailed(user_item_signals) returns item_item_recs {
+
+    -- Convert user_item_signals to an item_item_graph
+    ii_links_raw, item_weights   =   recsys__BuildItemItemGraphDetailed(
+                                       $user_item_signals,
+                                       $LOGISTIC_PARAM,
+                                       $MIN_LINK_WEIGHT,
+                                       $MAX_LINKS_PER_USER
+                                     );
+
+
+
+    -- Adjust the weights of the graph to improve recommendations.
+    ii_links                    =   recsys__AdjustItemItemGraphWeightDetailed(
+                                        ii_links_raw,
+                                        item_weights,
+                                        $BAYESIAN_PRIOR
+                                    );
+
+    -- Use the item-item graph to create item-item recommendations.
+    $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraphDetailed(
+                           ii_links,
+                           $NUM_RECS_PER_ITEM,
+                           $NUM_RECS_PER_ITEM
+                       );
+};
+
+
+/*
+ * This macro will create item-to-item recommendations based on user-item signals without detailed
+ * information on link source.
+ *
  * Input:
  *      user_item_signals: { (user:chararray, item:chararray, weight:float) }
  *
@@ -47,11 +91,10 @@ define recsys__GetItemItemRecommendations(user_item_signals) returns item_item_r
     -- Use the item-item graph to create item-item recommendations.
     $item_item_recs =  recsys__BuildItemItemRecommendationsFromGraph(
                            ii_links,
-                           $NUM_RECS_PER_ITEM, 
+                           $NUM_RECS_PER_ITEM,
                            $NUM_RECS_PER_ITEM
                        );
 };
-
 
 /*
  * This macro will create user-to-item recommendations based on user-item signals and 

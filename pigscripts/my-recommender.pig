@@ -19,7 +19,8 @@ raw_input = load '$INPUT_PATH' using PigStorage()
 user_signals = foreach raw_input generate
                  user as user,
                  item as item,
-                 1.0  as weight; -- Arbitrarily choose 1 as weight for purchasing an item.
+                 1.0  as weight, -- Arbitrarily choose 1 as weight for purchasing an item.
+                 "PURCHASE" as signal_type; -- Describe the signal.
 */
 
 
@@ -27,7 +28,7 @@ user_signals = foreach raw_input generate
 /*
 -- Call the default Mortar recommender algorithm on your user-item data.
 -- The input_signals alias needs to have the following fields: (user, item, weight:float)
-item_item_recs = recsys__GetItemItemRecommendations(user_signals);
+item_item_recs = recsys__GetItemItemRecommendationsDetailed(user_signals);
 user_item_recs = recsys__GetUserItemRecommendations(user_signals, item_item_recs);
 
 

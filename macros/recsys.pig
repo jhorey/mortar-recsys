@@ -32,13 +32,13 @@ register 'recsys.py' using jython as recsys_udfs;
 ----------------------------------------------------------------------------------------------------
 
 /*
- * This is the first step in the Mortar recommendation system.  
+ * This is the first step in the Mortar recommendation system.
  *
  * Build a weighted graph of item-item links from a collection of user-item signals.
  *
- * Algorithmically, this is "contracting" the bipartite user-item graph into a regular 
- * graph of item similarities. If a user U has affinity with items I1 and I2 of weights 
- * W1 and W2 respectively, than a link * between I1 and I2 is formed with the weight 
+ * Algorithmically, this is "contracting" the bipartite user-item graph into a regular
+ * graph of item similarities. If a user U has affinity with items I1 and I2 of weights
+ * W1 and W2 respectively, than a link * between I1 and I2 is formed with the weight
  * MIN(W1, W2).
  *
  * Input:
@@ -53,7 +53,7 @@ register 'recsys.py' using jython as recsys_udfs;
  * Output:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float) }
  *      item_weights: { (item:int, overall_weight:float) }
- *                                 item_weights contains an overall popularity weight for each item. 
+ *                                 item_weights contains an overall popularity weight for each item.
  */
 define recsys__BuildItemItemGraph(ui_signals, logistic_param, min_link_weight, max_links_per_user)
 returns ii_links, item_weights {
@@ -70,8 +70,8 @@ returns ii_links, item_weights {
                             flatten(group) as (user, item),
                             (float) SUM($1.weight) as weight;
 
-    -- Apply logistic function to user-item weights so a user with tons of events for the same item 
-    -- faces diminishing returns.  
+    -- Apply logistic function to user-item weights so a user with tons of events for the same item
+    -- faces diminishing returns.
     ui_scaled       =   foreach ui_agg generate
                             user, item,
                             (float) recsys_udfs.logistic_scale(weight, $logistic_param)
@@ -99,10 +99,10 @@ returns ii_links, item_weights {
 };
 
 /*
- * This is the second step in the Mortar recommendation system.  
+ * This is the second step in the Mortar recommendation system.
  *
  * Take a weighted item-item graph and adjust the weights based on the popularity of the item
- * linked to.  Without accounting for this, popular items will be considered "most-similar" for 
+ * linked to.  Without accounting for this, popular items will be considered "most-similar" for
  * every other item, since users of the other items frequently interact with the popular item.
  *
  * This macro uses Bayes theorem to avoid this problem, and also scaled the
@@ -141,7 +141,7 @@ returns ii_links_bayes {
 };
 
 /*
- * This is the third step in the Mortar recommendation system.  
+ * This is the third step in the Mortar recommendation system.
  *
  * After any domain-specific link boosting/penalization has been applied to the item-item graph
  * use that graph to generate recommendations ranked by the weight of the link.
@@ -152,11 +152,11 @@ returns ii_links_bayes {
  *
  * When following paths, distance is defined to be the inverse of the similarity weights.
  *
- * This has the effect that if there is a path from items A -> B -> C that has a total 
- * distance of less than A -> D, then the former path is recognized is more relevant; 
+ * This has the effect that if there is a path from items A -> B -> C that has a total
+ * distance of less than A -> D, then the former path is recognized is more relevant;
  * that is, the link A -> C will be ranked higher than A -> D.
  *
- * In the output, the field "raw_weight" will be null if the link is indirect. 
+ * In the output, the field "raw_weight" will be null if the link is indirect.
  *
  * Input:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float) }
@@ -201,10 +201,10 @@ returns item_recs {
 
 
 /*
- * Helper method for recsys__BuildItemItemRecommendationsFromGraph. 
+ * Helper method for recsys__BuildItemItemRecommendationsFromGraph.
  *
  * Construct distance and path graphs for use in the shortest path algorithm.
- * 
+ *
  * Input:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float) }
  *      num_recs: int
@@ -233,6 +233,184 @@ define recsys__InitShortestPaths(ii_links, num_recs) returns graph, paths {
     $paths              =   union graph_copy, self_loops;
 };
 
+----------------------------------------------------------------------------------------------------
+
+/*
+ * These are alternate macros for showing more detailed data about how recommendations were generated,
+ * recommended for early development on the recommendation engine.
+ */
+
+----------------------------------------------------------------------------------------------------
+/*
+ * Input:
+ *      ui_signals: { (user:chararray, item:chararray, weight:float, signal_type:chararray} )
+ *      logistic_param: float       Influences how multiple links between a user and item are
+ *                                  combined.  See params/README.md for details.
+ *      min_link_weight: float      For performance any item-item links lower than this value
+ *                                  will be removed.  See params/README.md for details.
+ *      max_links_per_user: int     For performance only keep the top [max_links_per_user link]
+ *                                  for an individual user.  See params/README.md for details.
+ *
+ * Output:
+ *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, link_data:map) }
+ *                      link_data contains information about the types of signals that formed the link
+ *      item_weights: { (item:int, overall_weight:float) }
+ *                      item_weights contains an overall popularity weight for each item
+ */
+define recsys__BuildItemItemGraphDetailed(ui_signals, logistic_param, min_link_weight, max_links_per_user)
+returns ii_links, item_weights {
+
+    define recsys__UserItemToItemItemGraphBuilder
+        com.mortardata.recsys.UserItemToItemItemGraphBuilderDetailed();
+    define recsys__FilterItemItemLinks
+        com.mortardata.recsys.FilterItemItemLinksDetailed('$min_link_weight');
+
+    ui_signals      =   filter $ui_signals by user is not null and item is not null;
+
+    -- Aggregate events by (user,item) and sum weights to get one weight for each user-item combination.
+    ui_agg          =   foreach (group ui_signals by (user, item)) generate
+                            flatten(group) as (user, item),
+                            (float) SUM($1.weight) as weight,
+                            recsys_udfs.aggregate_signal_types(ui_signals) as signal_types;
+
+    -- Apply logistic function to user-item weights so a user with tons of events for the same item 
+    -- faces diminishing returns.  
+    ui_scaled       =   foreach ui_agg generate
+                            user, item,
+                            (float) recsys_udfs.logistic_scale(weight, $logistic_param) as weight,
+                            signal_types;
+
+    -- Sum up the scaled weights for each item to determine its overall popularity weight.
+    item_weights_tmp =   foreach (group ui_scaled by item) generate
+                            group as item, (float) SUM($1.weight) as overall_weight, $1 as ui;
+    $item_weights    =   foreach item_weights_tmp generate item, overall_weight;
+
+    -- Drop items that don't meet the minimum weight.
+    ui_filt         =   foreach (filter item_weights_tmp by overall_weight >= $min_link_weight) generate
+                            flatten(ui) as (user, item, weight, signal_types);
+
+    -- Turn the user-item links into an item-item graph where each link is above the
+    -- minimum required weight.
+    ii_link_terms  =   foreach (group ui_filt by user) {
+                            top_for_user = TOP($max_links_per_user, 2, $1);
+                            generate flatten(recsys__UserItemToItemItemGraphBuilder(top_for_user));
+                        }
+    $ii_links      =   foreach (group ii_link_terms by item_A) generate
+                            group as item_A,
+                            flatten(recsys__FilterItemItemLinks($1))
+                                  as (item_B, weight, link_data);
+};
+
+/*
+ * Input:
+ *      ii_links_raw: { (item_A:chararray, item_B:chararray, weight:float, link_data:map) }
+ *      item_weights: { (item:chararray, overall_weight:float) }
+ *      prior: float                The prior guards the recommendations against the effects of items
+ *                                  with a small sample size.  See params/README.md for details.
+ *
+ * Output:
+ *      ii_links_bayes: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, link_data:map) }
+ *
+ *      raw_weight: The original non-adjusted weight of the item-item link.
+ */
+define recsys__AdjustItemItemGraphWeightDetailed(ii_links_raw, item_weights, prior)
+returns ii_links_bayes {
+
+    $ii_links_bayes =   foreach (join $item_weights by item, $ii_links_raw by item_B) generate
+                            item_A as item_A,
+                            item_B as item_B,
+                            (float) (overall_weight / (weight + $prior))
+                            as weight,
+                            weight as raw_weight,
+                            link_data as link_data;
+};
+
+/*
+ * In the output, the fields "raw_weight" and "link_data" will be null if the link is indirect.
+ * The field "linking_item" will be null if the link is direct.
+ *
+ * Input:
+ *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, link_data:map) }
+ *      num_recs: int
+ *      initial_nhood_size: int     For performance reasons you can prune an item's direct links
+ *                                  before performing the shortest path search.  This should always
+ *                                  be <= to num_recs.
+ * Output:
+ *      item_recs: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, rank:int,
+ *                      link_data:map, linking_item:chararray) }
+ *              linking_item is the item between item_A and item_B on the graph for indirect links
+ */
+define recsys__BuildItemItemRecommendationsFromGraphDetailed( ii_links, initial_nhood_size, num_recs)
+returns item_recs {
+
+    graph, paths        =   recsys__InitShortestPathsDetailed($ii_links, $initial_nhood_size);
+
+    two_step_terms      =   foreach (join graph by item_B, paths by item_A) generate
+                                graph::item_A as item_A,
+                                paths::item_B as item_B,
+                                graph::dist + paths::dist as dist,
+                                (paths::item_A == paths::item_B ?
+                                    graph::raw_weight : paths::raw_weight) as raw_weight,
+                                (paths::item_A == paths::item_B ?
+                                    graph::link_data : null) as link_data,
+                                (paths::item_A != paths::item_B ?
+                                    graph::item_B : null) as linking_item;
+
+    shortest_paths_dups =   foreach (group two_step_terms by (item_A, item_B)) generate
+                                flatten(recsys_udfs.best_path_detailed($1))
+                                as (item_A, item_B, dist, raw_weight, link_data, linking_item);
+    shortest_paths_full =   filter shortest_paths_dups by item_A != item_B;
+
+    -- jython udf returns doubles so recast to float
+    shortest_paths      =   foreach shortest_paths_full generate
+                                item_A, item_B, (float) dist, (float) raw_weight, link_data, linking_item;
+
+    nhoods_tmp          =   foreach (group shortest_paths by item_A) {
+                                ordered = order $1 by dist asc;
+                                    top = limit ordered $num_recs;
+                                generate flatten(recsys__Enumerate(top))
+                                      as (item_A, item_B, dist, raw_weight, link_data, linking_item, rank);
+                            }
+
+    $item_recs          =   foreach nhoods_tmp generate
+                                item_A, item_B, 1.0f / dist as weight, raw_weight, (int) rank, link_data, linking_item;
+};
+
+
+/*
+ * Helper method for recsys__BuildItemItemRecommendationsFromGraph. 
+ *
+ * Construct distance and path graphs for use in the shortest path algorithm.
+ * 
+ * Input:
+ *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, link_data:map) }
+ *      num_recs: int
+ *
+ * Output:
+ *       graph: { (item_A:chararray, item_B:chararray, dist:float, raw_weight:float, link_data:map) }
+ *       paths: { (item_A:chararray, item_B:chararray, dist:float, raw_weight:float, link_data:map) }
+ */
+define recsys__InitShortestPathsDetailed(ii_links, num_recs) returns graph, paths {
+
+    distance_mat        =   foreach $ii_links generate
+                                item_A, item_B, 1.0f / weight as dist, raw_weight, link_data;
+
+    $graph              =   foreach (group distance_mat by item_A) {
+                                sorted = order $1 by dist asc;
+                                   top = limit sorted $num_recs;
+                                generate flatten(top)
+                                      as (item_A, item_B, dist, raw_weight, link_data);
+                            }
+
+    graph_copy          =   foreach $graph generate item_A, item_B, dist, null as raw_weight, null as link_data;
+    dest_verts_dups     =   foreach graph_copy generate item_B as id;
+    dest_verts          =   distinct dest_verts_dups;
+    self_loops          =   foreach dest_verts generate
+                                id as item_A, id as item_B, 0.0f as dist, null as raw_weight, null as link_data;
+    $paths              =   union graph_copy, self_loops;
+};
+
+----------------------------------------------------------------------------------------------------
 
 /*
  * This macro takes links between users and items, and the item-to-item recommendations,
