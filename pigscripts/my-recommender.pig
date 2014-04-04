@@ -20,7 +20,7 @@ user_signals = foreach raw_input generate
                  user as user,
                  item as item,
                  1.0  as weight, -- Arbitrarily choose 1 as weight for purchasing an item.
-                 "PURCHASE" as signal_type; -- Describe the signal.
+                 'PURCHASE' as signal_type; -- Describe the signal.
 */
 
 

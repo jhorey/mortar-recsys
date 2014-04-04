@@ -49,11 +49,11 @@ define Recsys__ItemRecNamesFromIds(item_item_recs, item_names) returns debug {
 
     join_1      =   foreach (join $item_names by $0, $item_item_recs by item_B) generate
                         item_A as item_A, item_B as item_B, $1 as item_B_name,
-                        weight as weight, raw_weight as raw_weight, rank as rank;
+                        weight..;
 
     with_names  =   foreach (join $item_names by $0, join_1 by item_A) generate
                         item_A as item_A, $1 as item_A_name, item_B as item_B, item_B_name as item_B_name,
-                        weight as weight, raw_weight as raw_weight, rank as rank;
+                        weight..;
 
     $debug      =   order with_names by item_A asc, rank asc;
 };
