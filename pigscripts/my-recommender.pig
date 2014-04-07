@@ -19,7 +19,7 @@ raw_input = load '$INPUT_PATH' using PigStorage()
 user_signals = foreach raw_input generate
                  user as user,
                  item as item,
-                 1.0  as weight, -- Arbitrarily choose 1 as weight for purchasing an item.
+                 1.0  as weight; -- Arbitrarily choose 1 as weight for purchasing an item.
 */
 
 
