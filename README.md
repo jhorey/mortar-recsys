@@ -1,5 +1,13 @@
 # Mortar Recommendation Engine
 
-To allow you to get started quickly we have created this base recommendation engine project that you can fork to create your own project.  This project contains a couple of complete, runnable examples of the Mortar recommendation engine as well as a template project for easily getting started with your own data. The base Mortar project is open source and hosted in Github at https://github.com/mortardata/mortar-recsys.
+A customizable recommendation engine for Hadoop and Pig by [Mortar Data](http://www.mortardata.com).
 
-For help running the examples or for getting started building your own recommendation engine see our tutorials at: help.mortardata.com/recommenders.
+## Getting Started / Tutorials
+
+This project contains several complete, runnable examples of the Mortar recommendation engine on example data, as well as a template project for easily getting started with your own data.
+
+For a complete tutorial and explanation of how the recommendation engine works, see the [Mortar Recommendation Engine tutorial](http://help.mortardata.com/recommenders).
+
+## Asking Questions
+
+If you have any questions about the recommendation engine, please post to the [Mortar Q&A Forum](https://answers.mortardata.com/) to ask Mortar's engineers and data scientists.
