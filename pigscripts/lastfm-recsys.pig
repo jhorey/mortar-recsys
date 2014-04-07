@@ -11,8 +11,6 @@ import 'recommenders.pig';
 input_signals  =    load '$INPUT_SIGNALS' using PigStorage()
                         as (user: chararray, item_id: chararray, item: chararray, weight: float);
 
-input_signals  =    foreach input_signals generate
-                        user, item, weight, 'PLAY' as signal_type;
 
 item_item_recs =    recsys__GetItemItemRecommendations(input_signals);
 user_item_recs =    recsys__GetUserItemRecommendations(input_signals, item_item_recs);
