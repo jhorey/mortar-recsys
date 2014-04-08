@@ -32,13 +32,13 @@ register 'recsys.py' using jython as recsys_udfs;
 ----------------------------------------------------------------------------------------------------
 
 /*
- * This is the first step in the Mortar recommendation system.  
+ * This is the first step in the Mortar recommendation system.
  *
  * Build a weighted graph of item-item links from a collection of user-item signals.
  *
- * Algorithmically, this is "contracting" the bipartite user-item graph into a regular 
- * graph of item similarities. If a user U has affinity with items I1 and I2 of weights 
- * W1 and W2 respectively, than a link * between I1 and I2 is formed with the weight 
+ * Algorithmically, this is "contracting" the bipartite user-item graph into a regular
+ * graph of item similarities. If a user U has affinity with items I1 and I2 of weights
+ * W1 and W2 respectively, than a link * between I1 and I2 is formed with the weight
  * MIN(W1, W2).
  *
  * Input:
@@ -53,7 +53,7 @@ register 'recsys.py' using jython as recsys_udfs;
  * Output:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float) }
  *      item_weights: { (item:int, overall_weight:float) }
- *                                 item_weights contains an overall popularity weight for each item. 
+ *                                 item_weights contains an overall popularity weight for each item.
  */
 define recsys__BuildItemItemGraph(ui_signals, logistic_param, min_link_weight, max_links_per_user)
 returns ii_links, item_weights {
@@ -70,8 +70,8 @@ returns ii_links, item_weights {
                             flatten(group) as (user, item),
                             (float) SUM($1.weight) as weight;
 
-    -- Apply logistic function to user-item weights so a user with tons of events for the same item 
-    -- faces diminishing returns.  
+    -- Apply logistic function to user-item weights so a user with tons of events for the same item
+    -- faces diminishing returns.
     ui_scaled       =   foreach ui_agg generate
                             user, item,
                             (float) recsys_udfs.logistic_scale(weight, $logistic_param)
@@ -99,10 +99,10 @@ returns ii_links, item_weights {
 };
 
 /*
- * This is the second step in the Mortar recommendation system.  
+ * This is the second step in the Mortar recommendation system.
  *
  * Take a weighted item-item graph and adjust the weights based on the popularity of the item
- * linked to.  Without accounting for this, popular items will be considered "most-similar" for 
+ * linked to.  Without accounting for this, popular items will be considered "most-similar" for
  * every other item, since users of the other items frequently interact with the popular item.
  *
  * This macro uses Bayes theorem to avoid this problem, and also scaled the
@@ -141,7 +141,7 @@ returns ii_links_bayes {
 };
 
 /*
- * This is the third step in the Mortar recommendation system.  
+ * This is the third step in the Mortar recommendation system.
  *
  * After any domain-specific link boosting/penalization has been applied to the item-item graph
  * use that graph to generate recommendations ranked by the weight of the link.
@@ -152,11 +152,11 @@ returns ii_links_bayes {
  *
  * When following paths, distance is defined to be the inverse of the similarity weights.
  *
- * This has the effect that if there is a path from items A -> B -> C that has a total 
- * distance of less than A -> D, then the former path is recognized is more relevant; 
+ * This has the effect that if there is a path from items A -> B -> C that has a total
+ * distance of less than A -> D, then the former path is recognized is more relevant;
  * that is, the link A -> C will be ranked higher than A -> D.
  *
- * In the output, the field "raw_weight" will be null if the link is indirect. 
+ * In the output, the field "raw_weight" will be null if the link is indirect.
  *
  * Input:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float) }
@@ -201,10 +201,10 @@ returns item_recs {
 
 
 /*
- * Helper method for recsys__BuildItemItemRecommendationsFromGraph. 
+ * Helper method for recsys__BuildItemItemRecommendationsFromGraph.
  *
  * Construct distance and path graphs for use in the shortest path algorithm.
- * 
+ *
  * Input:
  *      ii_links: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float) }
  *      num_recs: int
@@ -233,6 +233,7 @@ define recsys__InitShortestPaths(ii_links, num_recs) returns graph, paths {
     $paths              =   union graph_copy, self_loops;
 };
 
+----------------------------------------------------------------------------------------------------
 
 /*
  * This macro takes links between users and items, and the item-to-item recommendations,

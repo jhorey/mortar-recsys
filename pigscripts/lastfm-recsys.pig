@@ -8,11 +8,12 @@ import 'recommenders.pig';
 %default INPUT_SIGNALS 's3://mortar-example-data/lastfm-dataset-360K/usersha1-artmbid-artname-plays.tsv'
 %default OUTPUT_PATH 's3://mortar-example-output-data/$MORTAR_EMAIL_S3_ESCAPED/lastfm-recommendations'
 
-input_signals  =  load '$INPUT_SIGNALS' using PigStorage()
-                    as (user: chararray, item_id: chararray, item: chararray, weight: float);
+input_signals  =    load '$INPUT_SIGNALS' using PigStorage()
+                        as (user: chararray, item_id: chararray, item: chararray, weight: float);
 
-item_item_recs = recsys__GetItemItemRecommendations(input_signals);
-user_item_recs = recsys__GetUserItemRecommendations(input_signals, item_item_recs);
+
+item_item_recs =    recsys__GetItemItemRecommendations(input_signals);
+user_item_recs =    recsys__GetUserItemRecommendations(input_signals, item_item_recs);
 
 --  If your output folder exists already, hadoop will refuse to write data to it.
 rmf $OUTPUT_PATH/item_item_recs;

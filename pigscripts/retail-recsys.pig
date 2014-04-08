@@ -37,7 +37,7 @@ wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.sto
 purchase_signals = foreach purchase_input generate
                         user_id    as user,
                         movie_name as item,
-                        1.0        as weight; 
+                        1.0        as weight;
 
 
 -- Start with choosing 0.5 as weight for wishlist items because that is a weaker signal than
@@ -45,10 +45,9 @@ purchase_signals = foreach purchase_input generate
 wishlist_signals = foreach wishlist_input generate
                         user_id    as user,
                         movie_name as item,
-                        0.5        as weight; 
+                        0.5        as weight;
 
 user_signals = union purchase_signals, wishlist_signals;
-
 
 
 /******* Use Mortar recommendation engine to convert signals to recommendations **********/
