@@ -33,7 +33,7 @@
  *
  * Output:
  *      item_item_recs: { (item_A:chararray, item_B:chararray, weight:float, raw_weight:float, rank:int,
- *                          link_details:map, linking_item:chararray) }
+ *                          link_data:map, linking_item:chararray) }
  *              linking_item is the item between item_A and item_B on the graph for indirect links
  *              link_data contains information about the types of signals that formed the link
  */
