@@ -348,7 +348,7 @@ returns ii_links_bayes {
     $ii_links_bayes =   foreach (join $item_weights by item, $ii_links_raw by item_B) generate
                             item_A as item_A,
                             item_B as item_B,
-                            (float) (overall_weight / (weight + $prior))
+                            (float) (weight / (overall_weight + $prior))
                             as weight,
                             weight as raw_weight,
                             link_data as link_data;
