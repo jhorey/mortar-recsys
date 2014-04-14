@@ -8,7 +8,7 @@ import 'recsys_helper.pig';
  *  To run this script you will need to provide a parameter CONN with your mongo connection
  *  string.  To set in mortar do:
  *
- *      mortar config:set CONN=<mongodb://<username>:<password>@<host>:<port>
+ *      mortar config:set CONN=mongodb://<username>:<password>@<host>:<port>
  *
  *  You will also need to have the data loaded in MongoDB.  To do that you can use
  *  the pigscripts/mongo/load_lastfm_data_to_mongo.pig script.
