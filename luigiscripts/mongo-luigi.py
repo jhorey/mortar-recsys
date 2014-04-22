@@ -58,7 +58,7 @@ class LastfmPigscriptTask(mortartask.MortarProjectPigscriptTask):
 
 class GenerateSignals(LastfmPigscriptTask):
     """
-    Runs the 01-generate-signals.pig Pigscript
+    Runs the 01-mongo-generate-signals.pig Pigscript
     """
 
     def requires(self):
@@ -77,12 +77,12 @@ class GenerateSignals(LastfmPigscriptTask):
         """
         Name of the script to run.
         """
-        return 'mongo/01-generate-signals'
+        return 'mongo/01-mongo-generate-signals'
 
 
 class ItemItemRecs(LastfmPigscriptTask):
     """
-    Runs the 02-item-item-recs.pig Pigscript
+    Runs the 02-mongo-item-item-recs.pig Pigscript
     """
 
     def requires(self):
@@ -104,11 +104,11 @@ class ItemItemRecs(LastfmPigscriptTask):
         """
         Name of the script to run.
         """
-        return 'mongo/02-item-item-recs'
+        return 'mongo/02-mongo-item-item-recs'
 
 class UserItemRecs(LastfmPigscriptTask):
     """
-    Runs the 03-user-item-recs.pig Pigscript
+    Runs the 03-mongo-user-item-recs.pig Pigscript
     """
 
     def requires(self):
@@ -127,7 +127,7 @@ class UserItemRecs(LastfmPigscriptTask):
         """
         Name of the script to run.
         """
-        return 'mongo/03-user-item-recs'
+        return 'mongo/03-mongo-user-item-recs'
 
 class WriteMongoDBCollections(LastfmPigscriptTask):
     """
