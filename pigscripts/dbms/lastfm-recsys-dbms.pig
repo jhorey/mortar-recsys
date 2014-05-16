@@ -23,12 +23,13 @@ import 'recsys_helper.pig';
 
 %default INPUT_SIGNALS 's3://mortar-example-data/lastfm-dataset-360K/usersha1-artmbid-artname-plays.tsv'
 
-%default DATABASE_TYPE='postgresql'
-%default DATABASE_HOST='<host>:<port>'
-%default DATABASE_NAME='<dbname>'
-%default DATABASE_USER='<username>'
-%default II_TABLE='<ii-table-name>'
-%default UI_TABLE='<ui-table-name>'
+%default DATABASE_TYPE 'postgresql'
+%default DATABASE_DRIVER 'org.postgresql.Driver'
+%default DATABASE_HOST '<host>:<port>'
+%default DATABASE_NAME '<dbname>'
+%default DATABASE_USER '<username>'
+%default II_TABLE '<ii-table-name>'
+%default UI_TABLE '<ui-table-name>'
 
 input_signals  =    load '$INPUT_SIGNALS' using PigStorage()
                         as (user: chararray, item_id: chararray, item: chararray, weight: float);

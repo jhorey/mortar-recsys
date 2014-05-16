@@ -37,7 +37,7 @@ def create_full_path(base_path, sub_path):
     return '%s/%s' % (base_path, sub_path)
 
 # REPLACE WITH YOUR PROJECT NAME
-MORTAR_PROJECT = '<your-project>'
+MORTAR_PROJECT = '<your-project-name>'
 
 class LastfmPigscriptTask(mortartask.MortarProjectPigscriptTask):
     # s3 path to the output folder used by luigi to track progress
@@ -67,7 +67,6 @@ class ExportDataToS3(sqoop.MortarSqoopQueryTask):
     # s3 path to the output folder used by luigi to track progress
     output_base_path = luigi.Parameter()
 
-    # TODO
     path = luigi.Parameter()
 
     def sql_query(self):
@@ -158,7 +157,7 @@ class CreateIITable(dbms.CreatePostgresTable):
     output_base_path = luigi.Parameter()
 
     # name of the table
-    postgres_table_name = luigi.Parameter()
+    table_name_prefix = luigi.Parameter()
 
     def output_token(self):
         return S3Target(create_full_path(self.output_base_path, self.__class__.__name__))
@@ -169,9 +168,9 @@ class CreateIITable(dbms.CreatePostgresTable):
     def field_string(self):
         return 'from_id varchar, to_id varchar, weight decimal, raw_weight decimal, rank int'
 
-    # append '-II' to distinguish between this and the user-item table
+    # append 'ii' to distinguish between this and the user-item table
     def table_name(self):
-        return '%s%s' % (self.postgres_table_name, 'ii')
+        return '%s%s' % (self.table_name_prefix, 'ii')
 
     def requires(self):
         return [UserItemRecs(output_base_path=self.output_base_path, data_store_path=self.data_store_path)]
@@ -188,7 +187,7 @@ class CreateUITable(dbms.CreatePostgresTable):
     output_base_path = luigi.Parameter()
 
     # name of the table
-    postgres_table_name = luigi.Parameter()
+    table_name_prefix = luigi.Parameter()
 
     def primary_key(self):
         return ['from_id', 'rank']
@@ -199,9 +198,9 @@ class CreateUITable(dbms.CreatePostgresTable):
     def output_token(self):
         return S3Target(create_full_path(self.output_base_path, self.__class__.__name__))
 
-    # append '-UI' to distinguish between this and the item-item table
+    # append 'ui' to distinguish between this and the item-item table
     def table_name(self):
-        return '%s%s' % (self.postgres_table_name, 'ui')
+        return '%s%s' % (self.table_name_prefix, 'ui')
 
     def requires(self):
         return [UserItemRecs(output_base_path=self.output_base_path, data_store_path=self.data_store_path)]
@@ -215,12 +214,12 @@ class WriteDBMSTables(LastfmPigscriptTask):
     # Unused: passing parameter
     data_store_path = luigi.Parameter()
 
-    # root bane of the
-    postgres_table_name = luigi.Parameter()
+    # root name of the table
+    table_name_prefix = luigi.Parameter()
 
     def requires(self):
-        return [CreateUITable(output_base_path=self.output_base_path, postgres_table_name=self.postgres_table_name, data_store_path=self.data_store_path),
-                CreateIITable(output_base_path=self.output_base_path, postgres_table_name=self.postgres_table_name, data_store_path=self.data_store_path)]
+        return [CreateUITable(output_base_path=self.output_base_path, table_name_prefix=self.table_name_prefix, data_store_path=self.data_store_path),
+                CreateIITable(output_base_path=self.output_base_path, table_name_prefix=self.table_name_prefix, data_store_path=self.data_store_path)]
 
     def script_output(self):
         return []
@@ -231,8 +230,8 @@ class WriteDBMSTables(LastfmPigscriptTask):
                 'DATABASE_HOST': '%s:%s' % (configuration.get_config().get('postgres', 'host'), configuration.get_config().get('postgres', 'port')),
                 'DATABASE_NAME': configuration.get_config().get('postgres', 'dbname'),
                 'DATABASE_USER': configuration.get_config().get('postgres', 'user'),
-                'II_TABLE': '%s%s' % (self.postgres_table_name, 'ii'),
-                'UI_TABLE': '%s%s' % (self.postgres_table_name, 'ui'),
+                'II_TABLE': '%s%s' % (self.table_name_prefix, 'ii'),
+                'UI_TABLE': '%s%s' % (self.table_name_prefix, 'ui'),
                 'OUTPUT_PATH': self.output_base_path
                }
 
@@ -258,11 +257,11 @@ class SanityTestIITable(dbms.SanityTestPostgresTable):
     output_base_path = luigi.Parameter()
 
     # name of the collection
-    postgres_table_name = luigi.Parameter()
+    table_name_prefix = luigi.Parameter()
 
-    # append '_II' to distinguish between this and the item-item collection
+    # append 'ii' to distinguish between this and the item-item collection
     def table_name(self):
-        return '%s%s' % (self.postgres_table_name, 'ii')
+        return '%s%s' % (self.table_name_prefix, 'ii')
 
     def output_token(self):
         return S3Target(create_full_path(self.output_base_path, self.__class__.__name__))
@@ -273,7 +272,7 @@ class SanityTestIITable(dbms.SanityTestPostgresTable):
 
     def requires(self):
         return [WriteDBMSTables(output_base_path=self.output_base_path,
-                                        postgres_table_name=self.postgres_table_name,
+                                        table_name_prefix=self.table_name_prefix,
                                         data_store_path=self.data_store_path)]
 
 class SanityTestUITable(dbms.SanityTestPostgresTable):
@@ -292,11 +291,11 @@ class SanityTestUITable(dbms.SanityTestPostgresTable):
     output_base_path = luigi.Parameter()
 
     # name of the collection
-    postgres_table_name = luigi.Parameter()
+    table_name_prefix = luigi.Parameter()
 
-    # append '_UI' to distinguish between this and the item-item collection
+    # append 'ui' to distinguish between this and the item-item collection
     def table_name(self):
-        return '%s%s' % (self.postgres_table_name, 'ui')
+        return '%s%s' % (self.table_name_prefix, 'ui')
 
     def output_token(self):
         return S3Target(create_full_path(self.output_base_path, self.__class__.__name__))
@@ -307,7 +306,7 @@ class SanityTestUITable(dbms.SanityTestPostgresTable):
 
     def requires(self):
         return [SanityTestIITable(output_base_path=self.output_base_path,
-                                       postgres_table_name=self.postgres_table_name,
+                                       table_name_prefix=self.table_name_prefix,
                                        data_store_path=self.data_store_path)]
 
 class ShutdownClusters(mortartask.MortarClusterShutdownTask):
@@ -322,11 +321,11 @@ class ShutdownClusters(mortartask.MortarClusterShutdownTask):
     output_base_path = luigi.Parameter()
 
     # unused, but must be passed through
-    postgres_table_name = luigi.Parameter()
+    table_name_prefix = luigi.Parameter()
 
     def requires(self):
         return [SanityTestUITable(output_base_path=self.output_base_path,
-                                       postgres_table_name=self.postgres_table_name,
+                                       table_name_prefix=self.table_name_prefix,
                                        data_store_path=self.data_store_path)]
 
     def output(self):
