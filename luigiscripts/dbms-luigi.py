@@ -64,8 +64,6 @@ class LastfmPigscriptTask(mortartask.MortarProjectPigscriptTask):
 
 
 class ExportDataToS3(sqoop.MortarSqoopQueryTask):
-    # s3 path to the output folder used by luigi to track progress
-    output_base_path = luigi.Parameter()
 
     path = luigi.Parameter()
 
