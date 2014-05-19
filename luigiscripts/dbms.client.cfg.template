@@ -1,0 +1,35 @@
+[mortar]
+email: ${email}
+api_key: ${api_key}
+
+[s3]
+aws_access_key_id: ${aws_access_key_id}
+aws_secret_access_key: ${aws_secret_access_key}
+
+# source database
+[database]
+dbtype: postgresql
+database: lastfm
+host: recsys.c7dh68hljccq.us-east-1.rds.amazonaws.com
+port: 5432
+username: recsys_user
+password: example_data
+
+
+# target database: only one of PostgreSQL and MySQL needed
+
+# to write to PostgresSQL
+[postgres]
+dbname: ${dbname}
+user: ${user}
+password: ${password}
+host: ${host}
+port: ${port}
+
+# to write to MySQL
+[mysql]
+dbname: ${dbname}
+user: ${user}
+password: ${password}
+host: ${host}
+port: ${port}
