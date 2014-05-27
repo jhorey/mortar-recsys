@@ -11,29 +11,29 @@ import 'recommenders.pig';
 /*
  * Diversify Items Technique
 */
-%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
-%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default INPUT_PATH_INVENTORY '../data/retail/inventory.json' -- added on for techniques
+%default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
+%default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'
+%default INPUT_PATH_INVENTORY '/service/data/retail/inventory.json' -- added on for techniques
 
-%default OUTPUT_PATH '../data/retail/out/diversify'
+%default OUTPUT_PATH '/service/data/retail/out/diversify'
 
 
 /******* Load Data **********/
 
 --Get purchase signals
-purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
-                    'row_id: int, 
-                     movie_id: chararray, 
-                     movie_name: chararray, 
-                     user_id: chararray, 
-                     purchase_price: int');
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.builtin.JsonLoader(
+                    'movie_id: chararray, 
+                     row_id: int, 
+		     user_id: chararray, 
+		     purchase_price: int,
+                     movie_name: chararray');
 
 --Get wishlist signals
-wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
-                     'row_id: int, 
-                      movie_id: chararray, 
-                      movie_name: chararray, 
-                      user_id: chararray');
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.builtin.JsonLoader(
+                     'movie_id: chararray, 
+		      row_id: int,                     
+		      user_id: chararray,
+                      movie_name: chararray');
 
 
 /******* Convert Data to Signals **********/
@@ -56,9 +56,9 @@ user_signals = union purchase_signals, wishlist_signals;
 
 /****** Changes for diversifying items ********/
 
-inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
-                     'movie_title: chararray, 
-                      genres: bag{tuple(content:chararray)}');
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.builtin.JsonLoader(
+                     'genres: bag{tuple(content:chararray)},
+                      movie_title: chararray');
 
 -- Generate metadata that is a vital arguement for buildig recommendations
 metadata = foreach inventory_input generate

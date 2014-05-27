@@ -12,10 +12,10 @@ import 'recommenders.pig';
 
 
 
-%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
-%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default INPUT_PATH_INVENTORY '../data/retail/inventory.json'
-%default OUTPUT_PATH '../data/retail/out/modify_item_item'
+%default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
+%default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'
+%default INPUT_PATH_INVENTORY '/service/data/retail/inventory.json'
+%default OUTPUT_PATH '/service/data/retail/out/modify_item_item'
 
 
 /******** Custom GetItemItemRecommnedations *********/
@@ -69,19 +69,19 @@ define recsys__GetItemItemRecommendations_ModifyCustom(user_item_signals, metada
 /******* Load Data **********/
 
 --Get purchase signals
-purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
-                    'row_id: int, 
-                     movie_id: chararray, 
-                     movie_name: chararray, 
-                     user_id: chararray, 
-                     purchase_price: int');
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.builtin.JsonLoader(
+                    'movie_id: chararray, 
+                     row_id: int, 
+		     user_id: chararray, 
+		     purchase_price: int,
+                     movie_name: chararray');
 
 --Get wishlist signals
-wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
-                     'row_id: int, 
-                      movie_id: chararray, 
-                      movie_name: chararray, 
-                      user_id: chararray');
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.builtin.JsonLoader(
+                     'movie_id: chararray, 
+		      row_id: int,                     
+		      user_id: chararray,
+                      movie_name: chararray');
 
 
 
@@ -105,9 +105,9 @@ user_signals = union purchase_signals, wishlist_signals;
 
 
 /******** Changes for Modifying item-item links ******/
-inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.piggybank.storage.JsonLoader(
-                     'movie_title: chararray, 
-                      genres: bag{tuple(content:chararray)}');
+inventory_input = load '$INPUT_PATH_INVENTORY' using org.apache.pig.builtin.JsonLoader(
+                     'genres: bag{tuple(content:chararray)},
+                      movie_title: chararray');
 
 
 metadata = foreach inventory_input generate

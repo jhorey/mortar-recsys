@@ -1,25 +1,24 @@
 import 'debug.pig';
 
-%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
-%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out'
+%default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
+%default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'
+%default OUTPUT_PATH '/service/data/retail/out'
 
 
 --Get purchase signals
-purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.piggybank.storage.JsonLoader(
-                    'row_id: int,
-                     movie_id: chararray,
-                     movie_name: chararray,
-                     user_id: chararray,
-                     purchase_price: int');
+purchase_input = load '$INPUT_PATH_PURCHASES' using org.apache.pig.builtin.JsonLoader(
+                    'movie_id: chararray, 
+                     row_id: int, 
+		     user_id: chararray, 
+		     purchase_price: int,
+                     movie_name: chararray');
 
 --Get wishlist signals
-wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.piggybank.storage.JsonLoader(
-                     'row_id: int,
-                      movie_id: chararray,
-                      movie_name: chararray,
-                      user_id: chararray');
-
+wishlist_input =  load '$INPUT_PATH_WISHLIST' using org.apache.pig.builtin.JsonLoader(
+                     'movie_id: chararray, 
+		      row_id: int,                     
+		      user_id: chararray,
+                      movie_name: chararray');
 
 
 /******* Convert Data to Signals **********/

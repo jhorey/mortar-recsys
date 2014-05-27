@@ -7,9 +7,9 @@
  */
 import 'macros/recommenders.pig';
 
-%default INPUT_PATH_PURCHASES '../data/retail/purchases.json'
-%default INPUT_PATH_WISHLIST '../data/retail/wishlists.json'
-%default OUTPUT_PATH '../data/retail/out'
+%default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
+%default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'
+%default OUTPUT_PATH '/service/data/retail/out'
 
 
 /******* Load Data **********/
