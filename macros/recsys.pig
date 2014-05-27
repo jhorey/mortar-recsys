@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-register 'datafu-0.0.10.jar';
-register 'trove4j-3.0.3.jar';
-register 'recsys-udfs.jar';
+register 'udfs/java/datafu-0.0.10.jar';
+register 'udfs/java/trove4j-3.0.3.jar';
+register 'udfs/java/recsys-udfs.jar';
 
 define recsys__Enumerate 
     datafu.pig.bags.Enumerate('1');
 
-register 'recsys.py' using jython as recsys_udfs;
+register 'udfs/jython/recsys.py' using jython as recsys_udfs;
 
 ----------------------------------------------------------------------------------------------------
 /*

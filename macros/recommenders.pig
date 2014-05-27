@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import 'recsys.pig';
-import 'recsys_alternatives.pig';
-import 'recommender_alternatives.pig';
-import 'recsys_util.pig';
+import 'macros/recsys.pig';
+import 'macros/recsys_alternatives.pig';
+import 'macros/recommender_alternatives.pig';
+import 'macros/recsys_util.pig';
 
 
 /*

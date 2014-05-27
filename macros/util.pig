@@ -21,7 +21,7 @@
  */
 ----------------------------------------------------------------------------------------------------
 
-register 'datafu-0.0.10.jar';
+register 'udfs/java/datafu-0.0.10.jar';
 
 /**
  * This macro helps you tune the BAYESIAN_PRIOR parameter for the recommender.  See
