@@ -2,7 +2,7 @@
  *  This script is an example recommender (using made up data) showing how you can create recommendations
  *  by using a popularity boost to improve results
  */
-import 'recommenders.pig';
+import 'macros/recommenders.pig';
 
 %default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'

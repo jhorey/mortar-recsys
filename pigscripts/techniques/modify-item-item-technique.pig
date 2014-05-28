@@ -5,7 +5,7 @@
  *  the same genre have it's weight cut in half in order to boost the signals of movies that do not have the same genre.
  *  This technique requires a customization of the standard GetItemItemRecommendations macro
  */
-import 'recommenders.pig';
+import 'macros/recommenders.pig';
 
 
 

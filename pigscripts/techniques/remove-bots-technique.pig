@@ -5,7 +5,7 @@
  *  Make sure that this script is ran using the 'techniques.param' file for the parameter file
  *  as a THREHOLD parameter is set in that instance.
  */
-import 'recommenders.pig';
+import 'macros/recommenders.pig';
 
 %default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'

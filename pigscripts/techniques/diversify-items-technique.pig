@@ -4,7 +4,7 @@
  *  dataset where titles are the items and the genre is the metadata_field.  The metadata entity
  *  is then passed as an arguement to automatically create more diverse recommendations. 
  */
-import 'recommenders.pig';
+import 'macros/recommenders.pig';
 
 
 

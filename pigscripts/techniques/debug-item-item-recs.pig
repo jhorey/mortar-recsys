@@ -1,4 +1,4 @@
-import 'debug.pig';
+import 'macros/debug.pig';
 
 %default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'

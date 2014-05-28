@@ -4,7 +4,7 @@
  *  This script adds item-item links between movies with the same genre.  These links are then given
  *  a positive weight to create more links between similar items.  
  */
-import 'recommenders.pig';
+import 'macros/recommenders.pig';
 
 
 

@@ -3,7 +3,7 @@
  *  from determining if an item is in stock or not.  This information must be determined by metadata
  *  that previously exists.
  */
-import 'recommenders.pig';
+import 'macros/recommenders.pig';
 
 %default INPUT_PATH_PURCHASES '/service/data/retail/purchases.json'
 %default INPUT_PATH_WISHLIST '/service/data/retail/wishlists.json'
