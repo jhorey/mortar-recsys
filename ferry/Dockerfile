@@ -15,7 +15,7 @@ ADD ./testmortar.sh /service/runscripts/test/
 RUN chmod a+x /service/runscripts/test/testmortar.sh
 
 # Modify path
-RUN echo export PATH=$$PATH:$$HADOOP_HOME/bin:$$PIG_HOME/bin >> /etc/profile
+RUN echo export PATH=$PATH:$HADOOP_HOME/bin:$PIG_HOME/bin >> /etc/profile
 
 # Clean everything
 RUN apt-get clean
