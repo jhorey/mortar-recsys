@@ -1,7 +1,12 @@
+metadata:
+   author: James Horey
+   version: 0.2.0
+   description: Mortar Recommendation System
+   tags: [machine learning,hadoop]
 backend:
    - storage:
         personality: "hadoop"
-        instances: 1
+        instances: ">=1"
         layers:
            - "hive"
 connectors:
